@@ -136,9 +136,10 @@ function guessCategory(title, summary) {
   return "Raziskave";
 }
 
-/* ---------- Zvezdno nebo ---------- */
+/* ---------- Zvezdno nebo (opcijsko — pri svetli temi ni prikazano) ---------- */
 function buildStarfield() {
   const el = $("starfield");
+  if (!el) return;
   const n = Math.min(140, Math.floor(window.innerWidth / 9));
   const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
