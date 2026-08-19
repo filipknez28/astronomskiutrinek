@@ -85,6 +85,10 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
     headerLogo && headerLogo.getAttribute("src") === "assets/aqw.png");
   check("Favicon uporablja assets/favicon-32.png",
     !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
+  check("Zunanji Spaceflight API je odstranjen",
+    !appJs.includes("spaceflightnewsapi.net") && !appJs.includes("api.nasa.gov"));
+  check("Na strani je urednik Filip Knez",
+    document.getElementById("feed").textContent.includes("Filip Knez"));
 
   // 1c. Firebase + ločene strani
   const fbConfig = fs.readFileSync(path.join(__dirname, "firebase-config.js"), "utf8");
@@ -127,6 +131,12 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   adminWin.document.getElementById("submitCode").click();
   check("Pravilna koda -> prijava se zapre", adminWin.document.getElementById("loginModal").classList.contains("hidden"));
   check("Pravilna koda -> odpre se skrbniški meni", !adminWin.document.getElementById("adminPanel").classList.contains("hidden"));
+  check("Uredniški profil kaže Filipa Kneza",
+    adminWin.document.getElementById("profileName").textContent.includes("Filip Knez"));
+  check("Urejevalnik ima orodja za slike in povezave",
+    !!adminWin.document.getElementById("editorToolbar") &&
+    !!adminWin.document.querySelector("[data-cmd='link']") &&
+    !!adminWin.document.querySelector("[data-cmd='image-file']"));
 
   // 5. Ustvarjanje članka
   adminWin.document.getElementById("fTitle").value = "Testna novica iz admina";

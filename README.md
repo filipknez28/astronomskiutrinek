@@ -4,9 +4,8 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
 
 ## Kaj stran omogoča
 
-- **Žive novice** — članke črpa iz [Spaceflight News API](https://spaceflightnewsapi.net) in
-  prikaže **Slika dneva** (NASA APOD) kot izpostavljeno novico. Brez internetne povezave
-  se prikaže lokalna zbirka člankov.
+- **Uredniške novice** — stran ne vleče tujega API-ja. Objavlja jih urednik
+  **Filip Knez** (profilna slika, byline, urejevalnik z slikami in povezavami).
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
   in polje za iskanje po naslovih in vsebini.
 - **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
@@ -89,4 +88,5 @@ npx serve .
 - `assets/aqw.png` — originalni logotip, prikazan v levem zgornjem kotu (temna podlaga se zlije s temno glavo)
 - `assets/logo-prosojen.png` — rezervna, prosojna verzija logotipa (shranjena za morebitno kasnejšo uporabo)
 - `assets/123456789.png` — prejšnji, uporabniško naloženi logotip (hranjen v repozitoriju)
-- `assets/favicon-*.png` — faviconi, generirani iz logotipa
+- `assets/filip-knez.jpg` — profilna slika urednika
+- `assets/favicon-*.png` — faviconi, izrezani iz logotipa `aqw.png`

@@ -17,7 +17,8 @@ const seedArticles = [
     image: "assets/seed-launch.jpg",
     category: "Rakete",
     date: "2026-08-14",
-    own: false
+    own: true,
+    author: "Filip Knez"
   },
   {
     id: "seed-2",
@@ -27,7 +28,8 @@ const seedArticles = [
     image: "assets/seed-mars.jpg",
     category: "Planeti",
     date: "2026-08-11",
-    own: false
+    own: true,
+    author: "Filip Knez"
   },
   {
     id: "seed-3",
@@ -37,7 +39,8 @@ const seedArticles = [
     image: "assets/seed-comet.jpg",
     category: "Opazovanje",
     date: "2026-08-09",
-    own: false
+    own: true,
+    author: "Filip Knez"
   },
   {
     id: "seed-4",
@@ -47,7 +50,8 @@ const seedArticles = [
     image: "assets/seed-nebula.jpg",
     category: "Vesolje",
     date: "2026-08-06",
-    own: false
+    own: true,
+    author: "Filip Knez"
   },
   {
     id: "seed-5",
@@ -57,7 +61,8 @@ const seedArticles = [
     image: "assets/seed-aurora.jpg",
     category: "Opazovanje",
     date: "2026-08-03",
-    own: false
+    own: true,
+    author: "Filip Knez"
   },
   {
     id: "seed-6",
@@ -67,15 +72,20 @@ const seedArticles = [
     image: "assets/hero.jpg",
     category: "Raziskave",
     date: "2026-07-28",
-    own: false
+    own: true,
+    author: "Filip Knez"
   }
 ];
 
 /* ---------- Stanje ---------- */
 let ownArticles = loadArticles();
-let apiArticles = [...seedArticles]; // privzeto: lokalna zbirka (dokler API ne odgovori)
-let apiLive = false;
 let featured = null;
+const PROFILE_KEY = "astronomski-utrinek-profile-v1";
+const DEFAULT_PROFILE = {
+  name: "Filip Knez",
+  role: "Urednik",
+  avatar: "assets/filip-knez.jpg"
+};
 let currentFilter = "Vse";
 let searchTerm = "";
 let editingId = null;
@@ -150,6 +160,30 @@ function makeId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   } catch (e) { /* ignore */ }
   return "a-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
+
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && p.name) return { ...DEFAULT_PROFILE, ...p };
+    }
+  } catch (e) { /* ignore */ }
+  return { ...DEFAULT_PROFILE };
+}
+function saveProfile(p) {
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ }
+}
+let profile = loadProfile();
+
+function renderRich(raw) {
+  if (window.AUEditor) return AUEditor.toHtml(raw);
+  return paragraphs(raw);
+}
+
+function authorOf(a) {
+  return (a && a.author) || profile.name || "Filip Knez";
 }
 
 function guessCategory(title, summary) {
@@ -227,68 +261,26 @@ async function fetchJson(url, ms = 9000) {
   }
 }
 
-async function loadFeatured() {
-  // Slika dneva (NASA APOD) — če ne uspe, uporabimo lokalno sliko.
-  try {
-    const d = await fetchJson("https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY");
-    if (d && d.media_type === "image" && d.url) {
-      featured = {
-        id: "apod",
-        title: d.title,
-        summary: d.explanation,
-        content: d.explanation,
-        image: d.url,
-        category: "Vesolje",
-        date: d.date || new Date().toISOString().slice(0, 10),
-        own: false,
-        sourceUrl: d.hdurl || d.url,
-        sourceLabel: "NASA APOD"
-      };
-      return;
-    }
-  } catch (e) { /* internet ni na voljo */ }
-  featured = {
+function pickFeatured() {
+  const list = allArticles();
+  featured = list[0] || {
     id: "seed-featured",
-    title: "Zemlja ponoči iz vesolja",
-    summary: "Naš planet z orbite: tanek modri pas ozračja, svetlobe mest in Rimska cesta nad obzorjem. Vesolje je bližje, kot se zdi.",
-    content: "Pogled na Zemljo z nizke orbite razkrije tanek modri pas ozračja, ki nas varuje pred sovražnim vesoljem.\n\nPod njim se lesketajo luči mest, nad njim pa se razpenja Rimska cesta. Vsaka od teh zvezd je sonce — mnoge imajo svoje planete.\n\nTa prizor vsak dan opazujejo astronavti na Mednarodni vesoljski postaji, ki Zemljo obkroži vsake 92 minut.",
+    title: "Astronomski Utrinek",
+    summary: "Uredništvo Filipa Kneza. Vesolje, zapisano v slovenščini.",
+    content: "Tu bodo tvoje zgodbe.",
     image: "assets/hero.jpg",
     category: "Vesolje",
     date: new Date().toISOString().slice(0, 10),
-    own: false
+    own: true,
+    author: "Filip Knez"
   };
 }
 
-async function loadApiNews() {
-  try {
-    const data = await fetchJson(
-      "https://api.spaceflightnewsapi.net/v4/articles/?limit=36&ordering=-published_at"
-    );
-    const items = (data && data.results) || [];
-    apiArticles = items
-      .filter((a) => a && a.title)
-      .map((a) => ({
-        id: "api-" + a.id,
-        title: a.title,
-        summary: a.summary || "",
-        content: a.summary || a.title,
-        image: a.image_url || "assets/hero.jpg",
-        category: guessCategory(a.title, a.summary),
-        date: (a.published_at || "").slice(0, 10),
-        own: false,
-        sourceUrl: a.url || null,
-        sourceLabel: a.news_site || "Vir"
-      }));
-    apiLive = true;
-  } catch (e) {
-    // Internet ni na voljo — uporabimo lokalno zbirko člankov.
-    apiArticles = [...seedArticles];
-    apiLive = false;
-  }
-}
-
 function allArticles() {
-  return [...ownArticles, ...apiArticles].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const map = new Map();
+  seedArticles.forEach((a) => map.set(a.id, a));
+  ownArticles.forEach((a) => map.set(a.id, a));
+  return [...map.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
 /* ---------- Prikaz novic ---------- */
@@ -337,6 +329,7 @@ function renderFeed() {
         </div>
         <div class="card-body">
           <time>${formatDate(a.date)}</time>
+          <p class="card-byline">${escapeHtml(authorOf(a))}</p>
           <h3>${escapeHtml(a.title)}</h3>
           <p>${escapeHtml(a.summary)}</p>
           <span class="read-more">Preberi zgodbo</span>
@@ -346,7 +339,7 @@ function renderFeed() {
     .join("");
 
   const ownCount = list.filter((a) => a.own).length;
-  const srcText = apiLive ? "vir: Spaceflight News API" : "lokalna zbirka novic";
+  const srcText = "uredništvo · Filip Knez";
   const nPlural = (n) => (n === 1 ? "novica" : n === 2 ? "novici" : n === 3 || n === 4 ? "novice" : "novic");
   const oPlural = (n) => (n === 1 ? "ka" : n === 2 ? "ki" : n === 3 || n === 4 ? "ke" : "kih");
   if (info) {
@@ -368,9 +361,10 @@ function renderFeatured() {
   if (!featured || !$("featuredTitle")) return;
   $("featuredImg").src = featured.image;
   $("featuredTitle").textContent = featured.title;
+  if ($("featuredBadge")) $("featuredBadge").textContent = "Izbor urednika";
   $("featuredMeta").textContent = featured.date
-    ? formatDate(featured.date) + (featured.own ? " • Uredniška novica" : "")
-    : "";
+    ? formatDate(featured.date) + " · " + authorOf(featured)
+    : authorOf(featured);
   const card = $("featuredCard");
   card.onclick = () => openArticle(featured.id);
   card.onkeydown = (e) => {
@@ -397,7 +391,8 @@ function paintArticle(a) {
   if ($("articleModalDate")) $("articleModalDate").textContent = formatDate(a.date);
   $("articleModalTitle").textContent = a.title;
   if ($("articleModalSummary")) $("articleModalSummary").textContent = a.summary || "";
-  if ($("articleModalContent")) $("articleModalContent").innerHTML = paragraphs(a.content);
+  if ($("articleModalContent")) $("articleModalContent").innerHTML = renderRich(a.content);
+  paintByline(a);
   const link = $("articleModalLink");
   if (link) {
     if (a.sourceUrl) {
@@ -408,6 +403,20 @@ function paintArticle(a) {
       link.classList.add("hidden");
     }
   }
+}
+
+
+function paintByline(a) {
+  const box = $("articleByline");
+  if (!box) return;
+  const name = authorOf(a);
+  const avatar = (a && a.authorImage) || profile.avatar || DEFAULT_PROFILE.avatar;
+  box.innerHTML = `
+    <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" />
+    <div>
+      <strong>${escapeHtml(name)}</strong>
+      <span>${escapeHtml(a.category || "")} · ${escapeHtml(formatDate(a.date))}</span>
+    </div>`;
 }
 
 function openArticle(id) {
@@ -427,7 +436,9 @@ async function renderArticlePage() {
   const id = params.get("id");
   const cached = recalledOpen();
   if (cached && (!id || cached.id === id)) paintArticle(cached);
-  await Promise.all([loadFeatured(), loadApiNews(), syncFromCloud()]);
+  pickFeatured();
+  await syncFromCloud();
+  pickFeatured();
   const a = (id && findArticle(id)) || (cached && findArticle(cached.id)) || cached;
   if (a) paintArticle(a);
   else if ($("articleModalTitle")) {
@@ -628,6 +639,8 @@ function loadIntoForm(id) {
   $("fImage").value = a.image || "";
   $("fSummary").value = a.summary || "";
   $("fContent").value = a.content || "";
+  if (window.__rich) window.__rich.set(a.content || "");
+  updateCoverPreview(a.image || "");
   renderAdminList();
   $("fTitle").focus();
 }
@@ -640,11 +653,75 @@ function resetForm() {
   if ($("fImage")) $("fImage").value = "";
   if ($("fSummary")) $("fSummary").value = "";
   if ($("fContent")) $("fContent").value = "";
+  if (window.__rich) window.__rich.set("");
+  updateCoverPreview("");
   renderAdminList();
+}
+
+
+function updateCoverPreview(src) {
+  const img = $("coverPreview");
+  if (!img) return;
+  if (src) {
+    img.src = src;
+    img.classList.remove("hidden");
+  } else {
+    img.removeAttribute("src");
+    img.classList.add("hidden");
+  }
+}
+
+function paintProfile() {
+  if ($("profileName")) $("profileName").textContent = profile.name;
+  if ($("profileAvatar")) $("profileAvatar").src = profile.avatar;
+}
+
+function initComposer() {
+  const area = $("fContent");
+  const surface = $("richEditor");
+  const bar = $("editorToolbar");
+  if (area && surface && window.AUEditor) {
+    window.__rich = AUEditor.bind(area, surface, bar);
+  }
+  const cover = $("fImage");
+  if (cover) {
+    cover.addEventListener("input", () => updateCoverPreview(cover.value.trim()));
+  }
+  const file = $("coverFile");
+  if (file) {
+    file.addEventListener("change", () => {
+      const f = file.files && file.files[0];
+      file.value = "";
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (cover) cover.value = reader.result;
+        updateCoverPreview(reader.result);
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+  const photo = $("profilePhoto");
+  if (photo) {
+    photo.addEventListener("change", () => {
+      const f = photo.files && photo.files[0];
+      photo.value = "";
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        profile = { ...profile, avatar: reader.result };
+        saveProfile(profile);
+        paintProfile();
+      };
+      reader.readAsDataURL(f);
+    });
+  }
 }
 
 function initAdmin() {
   if (!$("articleForm")) return;
+  initComposer();
+  paintProfile();
   if ($("newArticle")) $("newArticle").addEventListener("click", resetForm);
   if ($("resetForm")) $("resetForm").addEventListener("click", resetForm);
   if ($("adminClose")) {
@@ -664,6 +741,12 @@ function initAdmin() {
 
   $("articleForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (window.__rich) {
+      const html = window.__rich.get();
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      if ((tmp.textContent || "").trim()) $("fContent").value = html;
+    }
     const title = $("fTitle").value.trim();
     const summary = $("fSummary").value.trim();
     const content = $("fContent").value.trim();
@@ -676,7 +759,9 @@ function initAdmin() {
       image: $("fImage").value.trim() || "",
       category: $("fCategory").value,
       date: new Date().toISOString().slice(0, 10),
-      own: true
+      own: true,
+      author: profile.name,
+      authorImage: profile.avatar
     };
 
     let article;
@@ -768,7 +853,9 @@ async function init() {
   renderFeed();
   initReveal();
 
-  await Promise.all([loadFeatured(), loadApiNews(), syncFromCloud()]);
+  pickFeatured();
+  await syncFromCloud();
+  pickFeatured();
   renderFeatured();
   renderFeed();
 }

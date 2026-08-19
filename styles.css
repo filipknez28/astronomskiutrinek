@@ -797,12 +797,12 @@ select.text-input { appearance: none; }
 
 /* ===== Skrbniški panel ===== */
 .admin {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  overflow-y: auto;
-  background: rgba(7, 7, 8, 0.92);
-  padding: 40px 0;
+  position: relative;
+  inset: auto;
+  z-index: 1;
+  overflow: visible;
+  background: transparent;
+  padding: 0 0 64px;
 }
 .admin-card {
   background: var(--paper);

@@ -52,10 +52,17 @@
       <div class="container">
         <div class="admin-card">
           <header class="admin-header">
-            <div>
-              <h1>Skrbniški meni</h1>
-              <p class="modal-sub">Pišite, urejajte in brišite članke. Spremembe so vidne takoj na strani.</p>
-              <p class="admin-cloud-status" id="cloudStatus" aria-live="polite"></p>
+            <div class="editor-profile">
+              <img id="profileAvatar" class="profile-avatar" src="assets/filip-knez.jpg" alt="Filip Knez" />
+              <div>
+                <p class="profile-name" id="profileName">Filip Knez</p>
+                <p class="modal-sub">Urednik · Astronomski Utrinek</p>
+                <p class="admin-cloud-status" id="cloudStatus" aria-live="polite"></p>
+              </div>
+              <label class="btn btn-small profile-photo-btn">
+                Zamenjaj sliko
+                <input type="file" id="profilePhoto" accept="image/*" hidden />
+              </label>
             </div>
             <div class="admin-header-actions">
               <a class="btn btn-ghost" id="adminClose" href="index.html">Na stran</a>
@@ -93,8 +100,17 @@
                   </div>
                 </div>
                 <div class="form-field">
-                  <label for="fImage">Povezava do slike (URL) — pusti prazno za samodejno sliko</label>
-                  <input id="fImage" class="text-input" type="url" placeholder="https://primer.si/slika.jpg" />
+                  <label>Naslovna slika</label>
+                  <div class="cover-row">
+                    <img id="coverPreview" class="cover-preview hidden" alt="Predogled naslovne slike" />
+                    <div class="cover-fields">
+                      <input id="fImage" class="text-input" type="text" placeholder="https://primer.si/slika.jpg" />
+                      <label class="btn btn-small">
+                        Naloži z diska
+                        <input type="file" id="coverFile" accept="image/*" hidden />
+                      </label>
+                    </div>
+                  </div>
                 </div>
                 <div class="form-field">
                   <label for="fSummary">Povzetek (kratek uvod pod naslovom) *</label>
@@ -102,7 +118,24 @@
                 </div>
                 <div class="form-field">
                   <label for="fContent">Vsebina članka *</label>
-                  <textarea id="fContent" class="text-input" rows="10" required placeholder="Celotno besedilo članka. Vsaka vrstica postane nov odstavek…"></textarea>
+                  <div class="editor-shell">
+                    <div class="editor-toolbar" id="editorToolbar">
+                      <button type="button" data-cmd="bold" title="Krepko">B</button>
+                      <button type="button" data-cmd="italic" title="Ležeče"><em>I</em></button>
+                      <button type="button" data-cmd="underline" title="Podčrtano">U</button>
+                      <span class="editor-sep"></span>
+                      <button type="button" data-cmd="formatBlock" data-value="H2" title="Naslov">H2</button>
+                      <button type="button" data-cmd="insertUnorderedList" title="Seznam">• Seznam</button>
+                      <button type="button" data-cmd="formatBlock" data-value="BLOCKQUOTE" title="Citat">Citat</button>
+                      <span class="editor-sep"></span>
+                      <button type="button" data-cmd="link" title="Povezava">Povezava</button>
+                      <button type="button" data-cmd="image-url" title="Slika iz povezave">Slika URL</button>
+                      <button type="button" data-cmd="image-file" title="Slika z diska">Slika z diska</button>
+                      <input type="file" data-image-file accept="image/*" hidden />
+                    </div>
+                    <div id="richEditor" class="rich-editor" contenteditable="true" role="textbox" aria-label="Vsebina članka"></div>
+                  </div>
+                  <textarea id="fContent" class="sr-only" rows="10" required placeholder="Celotno besedilo članka…"></textarea>
                 </div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-ghost" id="resetForm">Razveljavi</button>
@@ -136,6 +169,7 @@
 
   <script src="firebase-config.js"></script>
   <script src="firebase.js"></script>
+  <script src="editor.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
