@@ -14,11 +14,13 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="starfield" class="starfield" aria-hidden="true"></div>
+
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="#top">
         <span class="brand-mark">
-          <img class="brand-logo" src="assets/logo.png" alt="Logotip Astronomski Utrinek"
+          <img class="brand-logo" src="assets/aqw.png" alt="Logotip Astronomski Utrinek"
                onerror="var p=this.parentElement; this.remove(); p.classList.add('is-fallback'); p.parentElement.classList.add('is-fallback');" />
           <span class="brand-emoji" aria-hidden="true">✦</span>
         </span>
@@ -30,11 +32,14 @@
         <a href="#o-strani">O strani</a>
       </nav>
     </div>
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="tickerTrack"></div>
+    </div>
   </header>
 
   <section class="hero" id="top">
     <div class="container hero-grid">
-      <div class="hero-text">
+      <div class="hero-text reveal">
         <p class="hero-kicker">✦ Dnevne novice iz vesolja</p>
         <h1>Poglej gor.<br />Tam se vedno kaj <em>dogaja</em>.</h1>
         <p class="hero-sub">
@@ -45,12 +50,17 @@
           <a class="btn btn-primary" href="#novice">Preberi novice</a>
           <a class="btn btn-ghost" href="#o-strani">O strani</a>
         </div>
+        <div class="hero-stats">
+          <span class="stat-pill">🛰 Živi viri novic</span>
+          <span class="stat-pill">5 kategorij</span>
+          <span class="stat-pill">☁ Oblačna shramba</span>
+        </div>
       </div>
       <figure class="hero-card" id="featuredCard" tabindex="0" role="button" aria-label="Odpri izbrano novico">
         <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
         <div class="hero-card-shade"></div>
         <figcaption class="hero-card-caption">
-          <span class="badge badge-gold" id="featuredBadge">Slika dneva</span>
+          <span class="badge badge-live" id="featuredBadge"><span class="live-dot"></span>Slika dneva</span>
           <h2 id="featuredTitle">Zemlja ponoči iz vesolja</h2>
           <p id="featuredMeta"></p>
         </figcaption>
@@ -60,15 +70,16 @@
 
   <main id="novice" class="news-section">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head reveal">
         <div>
+          <p class="section-kicker">Najnovejše objave</p>
           <h2>Najnovejše novice</h2>
           <p class="section-sub" id="feedInfo">Nalagam novice&nbsp;…</p>
         </div>
         <input type="search" id="searchInput" class="search-input" placeholder="Išči novice…" aria-label="Išči novice" />
       </div>
 
-      <div class="chips" id="chips" role="tablist" aria-label="Filtri novic">
+      <div class="chips reveal" id="chips" role="tablist" aria-label="Filtri novic">
         <button class="chip is-active" data-filter="Vse">Vse</button>
         <button class="chip" data-filter="Vesolje">Vesolje</button>
         <button class="chip" data-filter="Planeti">Planeti</button>
@@ -85,7 +96,8 @@
 
   <section id="o-strani" class="about">
     <div class="container about-grid">
-      <div>
+      <div class="reveal">
+        <p class="section-kicker">Kdo smo</p>
         <h2>O strani</h2>
         <p>
           <strong>Astronomski Utrinek</strong> je zbirališče astronomskih novic v slovenščini.
@@ -97,7 +109,7 @@
           specializiranih novičarskih portalov, vsebine pa dopolnjuje naše uredništvo.
         </p>
       </div>
-      <div class="about-card">
+      <div class="about-card reveal">
         <h3>🔭 Kdaj gledati v nebo?</h3>
         <ul class="about-list">
           <li><strong>Nov luna</strong> — najtemnejše nebo za galaksije in meglice.</li>

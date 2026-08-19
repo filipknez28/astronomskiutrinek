@@ -56,8 +56,8 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
   // 1b. Logotip v glavi
   const headerLogo = document.querySelector(".site-header .brand-logo");
-  check("Logotip v glavi kaže na assets/logo.png",
-    headerLogo && headerLogo.getAttribute("src") === "assets/logo.png");
+  check("Logotip v glavi kaže na originalni assets/aqw.png",
+    headerLogo && headerLogo.getAttribute("src") === "assets/aqw.png");
   check("Favicon uporablja assets/favicon-32.png",
     !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
 
