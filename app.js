@@ -270,8 +270,28 @@ function initChrome() {
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
   }
+  initMobileNav();
   paintAuthNav();
   window.addEventListener("au-auth", paintAuthNav);
+}
+
+function initMobileNav() {
+  const header = document.querySelector(".site-header");
+  const btn = document.querySelector(".nav-toggle");
+  if (!header || !btn) return;
+  const setOpen = (open) => {
+    header.classList.toggle("nav-open", open);
+    document.body.classList.toggle("nav-lock", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Zapri meni" : "Odpri meni");
+  };
+  btn.addEventListener("click", () => setOpen(!header.classList.contains("nav-open")));
+  header.addEventListener("click", (e) => {
+    if (e.target.closest(".main-nav a")) setOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setOpen(false);
+  });
 }
 
 function paintAuthNav() {
