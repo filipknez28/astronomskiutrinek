@@ -411,12 +411,88 @@ function initLogin() {
   });
 }
 
+/* ---------- Firebase oblak (opcijsko — glej firebase.js) ---------- */
+let cloudStatus = "not-configured";
+
+function fbReady() {
+  try {
+    return typeof FB !== "undefined" && typeof FB.isConfigured === "function" && FB.isConfigured();
+  } catch (e) {
+    return false;
+  }
+}
+
+function setCloudStatus(state) {
+  cloudStatus = state;
+  const el = $("cloudStatus");
+  if (!el) return;
+  el.classList.remove("is-online", "is-offline");
+  const messages = {
+    online: "☁ Oblačna shramba (Firebase): povezano — članki so vidni vsem obiskovalcem.",
+    offline: "Oblačna shramba: ni na voljo — članki so shranjeni samo v tem brskalniku.",
+    "not-configured": "Oblačna shramba: ni nastavljena — članki se shranjujejo samo v tem brskalniku."
+  };
+  el.textContent = messages[state] || messages["not-configured"];
+  if (state === "online") el.classList.add("is-online");
+  if (state === "offline") el.classList.add("is-offline");
+}
+
+/* Ob zagonu preberi članke iz oblaka in jih združi z lokalnimi */
+async function syncFromCloud() {
+  if (!fbReady()) {
+    setCloudStatus("not-configured");
+    return;
+  }
+  try {
+    const remote = await FB.loadArticles();
+    if (Array.isArray(remote) && remote.length) {
+      const map = new Map(remote.map((a) => [a.id, a]));
+      // lokalni članki, ki jih še ni v oblaku, ostanejo
+      ownArticles.forEach((a) => {
+        if (!map.has(a.id)) map.set(a.id, a);
+      });
+      ownArticles = [...map.values()];
+      saveArticles();
+    }
+    setCloudStatus("online");
+  } catch (e) {
+    setCloudStatus("offline");
+  }
+}
+
+async function saveToCloud(article) {
+  if (!fbReady()) {
+    setCloudStatus("not-configured");
+    return;
+  }
+  try {
+    await FB.saveArticle(article);
+    setCloudStatus("online");
+  } catch (e) {
+    setCloudStatus("offline");
+  }
+}
+
+async function deleteFromCloud(id) {
+  if (!fbReady()) {
+    setCloudStatus("not-configured");
+    return;
+  }
+  try {
+    await FB.deleteArticle(id);
+    setCloudStatus("online");
+  } catch (e) {
+    setCloudStatus("offline");
+  }
+}
+
 /* ---------- Skrbniški meni: pisanje in upravljanje člankov ---------- */
 function openAdmin() {
   editingId = null;
   resetForm();
   renderAdminList();
   showModal("adminPanel");
+  setCloudStatus(cloudStatus);
   $("fTitle").focus();
 }
 
@@ -480,7 +556,7 @@ function initAdmin() {
     hideModal("adminPanel");
   });
 
-  $("articleForm").addEventListener("submit", (e) => {
+  $("articleForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = $("fTitle").value.trim();
     const summary = $("fSummary").value.trim();
@@ -497,20 +573,26 @@ function initAdmin() {
       own: true
     };
 
+    let article;
     if (editingId) {
       const idx = ownArticles.findIndex((x) => x.id === editingId);
-      if (idx !== -1) ownArticles[idx] = { ...ownArticles[idx], ...data };
+      if (idx !== -1) {
+        ownArticles[idx] = { ...ownArticles[idx], ...data };
+        article = ownArticles[idx];
+      }
     } else {
-      ownArticles.unshift({ id: makeId(), ...data });
+      article = { id: makeId(), ...data };
+      ownArticles.unshift(article);
     }
     saveArticles();
     resetForm();
     renderAdminList();
     renderFeed();
+    if (article) await saveToCloud(article);
   });
 
   // Izbriši članek (gumb v seznamu admin panela)
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", async (e) => {
     const btn = e.target.closest("[data-delete]");
     if (!btn) return;
     const id = btn.dataset.delete;
@@ -520,6 +602,7 @@ function initAdmin() {
     if (editingId === id) resetForm();
     else renderAdminList();
     renderFeed();
+    await deleteFromCloud(id);
   });
 }
 
@@ -554,7 +637,7 @@ async function init() {
   initFilters();
   renderFeed();
 
-  await Promise.all([loadFeatured(), loadApiNews()]);
+  await Promise.all([loadFeatured(), loadApiNews(), syncFromCloud()]);
   renderFeatured();
   renderFeed();
 }

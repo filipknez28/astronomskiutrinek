@@ -556,6 +556,10 @@ select.text-input { appearance: none; }
 .admin-header .modal-sub { margin-bottom: 0; }
 .admin-header-actions { display: flex; gap: 10px; }
 
+.admin-cloud-status { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+.admin-cloud-status.is-online { color: var(--accent-2); }
+.admin-cloud-status.is-offline { color: var(--danger); }
+
 .admin-layout {
   display: grid;
   grid-template-columns: 300px 1fr;

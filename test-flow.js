@@ -15,6 +15,26 @@ window.confirm = () => true;
 window.fetch = () => Promise.reject(new Error("offline")); // brez interneta -> semena
 window.crypto = window.crypto || require("crypto").webcrypto;
 
+// simuliran Firebase oblak (namesto pravega Firebase strežnika)
+window.FB = {
+  cloud: {
+    "cloud-1": {
+      id: "cloud-1",
+      title: "Novica iz oblaka",
+      summary: "Ta članek prihaja iz Firebase Realtime Database.",
+      content: "Vsebina članka iz oblaka.",
+      image: "",
+      category: "Vesolje",
+      date: "2026-08-18",
+      own: true
+    }
+  },
+  isConfigured: () => true,
+  async loadArticles() { return Object.values(this.cloud); },
+  async saveArticle(a) { this.cloud[a.id] = { ...a }; },
+  async deleteArticle(id) { delete this.cloud[id]; }
+};
+
 let pass = 0, fail = 0;
 const check = (name, cond) => {
   if (cond) { pass++; console.log("  ✔", name); }
@@ -27,9 +47,11 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   window.eval(appJs);
   await tick(400); // počakamo na (spodleteli) API klic
 
-  // 1. Začetni prikaz: 6 semenskih novic
+  // 1. Začetni prikaz: 6 semenskih novic + 1 novica iz oblaka
   const cards = document.querySelectorAll("#feed .news-card");
-  check(`Prikazanih ${cards.length} semenskih novic (pričakovano 6)`, cards.length === 6);
+  check(`Prikazanih ${cards.length} novic (pričakovano 7)`, cards.length === 7);
+  check("Novica iz Firebase oblaka je vidna na strani",
+    document.getElementById("feed").textContent.includes("Novica iz oblaka"));
   check("Izpostavljena novica ima naslov", document.getElementById("featuredTitle").textContent.length > 5);
 
   // 1b. Logotip v glavi
@@ -75,8 +97,12 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   await tick(30);
   const feedText = document.getElementById("feed").textContent;
   check("Nov članek se pojavi na vrhu strani", feedText.includes("Testna novica iz admina"));
-  check("Članek je shranjen v localStorage", JSON.parse(window.localStorage.getItem("astronomski-utrinek-articles-v1")).length === 1);
+  check("Članek je shranjen v localStorage", JSON.parse(window.localStorage.getItem("astronomski-utrinek-articles-v1")).length === 2);
   check("Članek ima značko 'Uredniška'", feedText.includes("Uredniška"));
+  check("Članek se zapiše tudi v Firebase oblak",
+    Object.keys(window.FB.cloud).length === 2 &&
+    Object.values(window.FB.cloud).some((a) => a.title === "Testna novica iz admina"));
+  check("Status oblaka: povezano", document.getElementById("cloudStatus").textContent.includes("povezano"));
 
   // 6. Branje članka iz feeda
   const firstCard = document.querySelector("#feed .news-card");
@@ -93,13 +119,19 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   document.getElementById("articleForm").dispatchEvent(new window.MouseEvent("submit", { bubbles: true, cancelable: true }));
   await tick(30);
   check("Urejanje posodobi naslov na strani", document.getElementById("feed").textContent.includes("Urejena testna novica"));
+  check("Urejanje posodobi članek tudi v oblaku",
+    Object.values(window.FB.cloud).some((a) => a.title === "Urejena testna novica"));
 
   // 8. Brisanje
   document.querySelector(".admin-item-delete").click();
   await tick(30);
   check("Brisanje odstrani članek s strani", !document.getElementById("feed").textContent.includes("Urejena testna novica"));
-  check("Brisanje počisti localStorage", JSON.parse(window.localStorage.getItem("astronomski-utrinek-articles-v1")).length === 0);
-  check("Prazna admin lista prikaže sporočilo", !document.getElementById("adminListEmpty").classList.contains("hidden"));
+  check("Novica iz oblaka ostane na strani", document.getElementById("feed").textContent.includes("Novica iz oblaka"));
+  check("Brisanje posodobi localStorage (ostane le članek iz oblaka)", JSON.parse(window.localStorage.getItem("astronomski-utrinek-articles-v1")).length === 1);
+  check("Brisanje odstrani članek tudi iz Firebase oblaka",
+    Object.keys(window.FB.cloud).length === 1 &&
+    !Object.values(window.FB.cloud).some((a) => a.title === "Urejena testna novica"));
+  check("Admin lista še vedno prikazuje preostali članek iz oblaka", document.getElementById("adminListEmpty").classList.contains("hidden"));
 
   // 9. Iskanje in filter
   const search = document.getElementById("searchInput");
