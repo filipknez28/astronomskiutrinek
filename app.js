@@ -26,7 +26,7 @@ let editingId = null;
 const CATEGORIES = ["Vesolje", "Planeti", "Rakete", "Opazovanje", "Raziskave"];
 const OPEN_KEY = "astronomski-utrinek-open";
 const PAGE = (document.body && document.body.dataset.page) || "home";
-const SITE_URL = String(window.SITE_URL || "https://stronomskiutrinek.top").replace(/\/+$/, "");
+const SITE_URL = String(window.SITE_URL || "https://astronomskiutrinek.top").replace(/\/+$/, "");
 
 function absUrl(path) {
   if (!path) return SITE_URL + "/assets/hero.jpg";

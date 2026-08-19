@@ -110,7 +110,7 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("robots.txt in sitemap obstajata",
     fs.existsSync(path.join(__dirname, "robots.txt")) &&
     fs.existsSync(path.join(__dirname, "sitemap.xml")) &&
-    fs.readFileSync(path.join(__dirname, "robots.txt"), "utf8").includes("stronomskiutrinek.top"));
+    fs.readFileSync(path.join(__dirname, "robots.txt"), "utf8").includes("astronomskiutrinek.top"));
   check("Naslovnica ima SEO opis in canonical",
     !!document.querySelector("meta[name='description']") &&
     !!document.querySelector("link[rel='canonical']"));

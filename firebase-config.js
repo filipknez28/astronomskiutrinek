@@ -9,4 +9,4 @@ window.FIREBASE_CONFIG = {
   appId: "1:265975338714:web:2c991d7dde0b852d4277e3",
   measurementId: "G-MC6BYYG33W"
 };
-window.SITE_URL = "https://stronomskiutrinek.top";
+window.SITE_URL = "https://astronomskiutrinek.top";

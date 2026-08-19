@@ -64,6 +64,26 @@ ne posodobiš). Primeren je za razvoj in testiranje — za resno produkcijo bi d
 Firebase Authentication in strožja pravila. Podaljšaš ga tako, da v zavihku **Rules**
 zvišaš časovni žig in klikneš **Publish**.
 
+## Google prijava in Analytics
+
+V `firebase-config.js` je celotna konfiguracija spletne aplikacije.
+
+1. V Firebase konzoli odpri **Authentication → Sign-in method → Google** in vklopi ponudnika.
+2. Pod **Authentication → Settings → Authorized domains** dodaj:
+   `astronomskiutrinek.top` (in `www.astronomskiutrinek.top`, če ga uporabljaš).
+3. Analytics (`G-MC6BYYG33W`) se naloži prek `analytics.js` na javnih straneh.
+
+## SEO (astronomskiutrinek.top)
+
+- `robots.txt` in `sitemap.xml`
+- Open Graph / Twitter kartice in `canonical` na javnih straneh
+- JSON-LD (`NewsMediaOrganization`, `WebSite`, `NewsArticle`, `Person`)
+- `admin` in `prijava` sta `noindex`
+
+V [Google Search Console](https://search.google.com/search-console) dodaj lastnino
+`https://astronomskiutrinek.top`, preveri domeno in pošlji
+`https://astronomskiutrinek.top/sitemap.xml`.
+
 ## Zagon
 
 Stran je statična (HTML + CSS + JS), zato jo lahko odpreš neposredno ali jo postrežeš
