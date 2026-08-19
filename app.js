@@ -140,20 +140,28 @@ function guessCategory(title, summary) {
 function buildStarfield() {
   const el = $("starfield");
   if (!el) return;
-  const n = Math.min(110, Math.floor(window.innerWidth / 12));
+  const n = Math.min(48, Math.floor(window.innerWidth / 28));
   const frag = document.createDocumentFragment();
   for (let i = 0; i < n; i++) {
     const s = document.createElement("span");
-    const size = Math.random() * 1.6 + 0.7;
+    const size = Math.random() * 1.2 + 0.5;
     s.style.width = size + "px";
     s.style.height = size + "px";
     s.style.left = Math.random() * 100 + "vw";
     s.style.top = Math.random() * 100 + "vh";
-    s.style.animationDelay = (Math.random() * 6).toFixed(2) + "s";
-    s.style.animationDuration = (3.5 + Math.random() * 5).toFixed(2) + "s";
+    s.style.animationDelay = (Math.random() * 8).toFixed(2) + "s";
+    s.style.animationDuration = (5 + Math.random() * 6).toFixed(2) + "s";
     frag.appendChild(s);
   }
   el.appendChild(frag);
+}
+
+function initChrome() {
+  const header = document.querySelector(".site-header");
+  if (!header) return;
+  const onScroll = () => header.classList.toggle("is-scrolled", (window.scrollY || 0) > 12);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 }
 
 /* ---------- Tekoči pas novic (ticker) ---------- */
@@ -166,7 +174,7 @@ function fillTicker() {
     return;
   }
   const items = titles
-    .map((t) => `<span class="ticker-item">✦ ${escapeHtml(t)}</span>`)
+    .map((t) => `<span class="ticker-item">${escapeHtml(t)}</span>`)
     .join("");
   track.innerHTML = items + items; // podvojeno za neskončno zankanje
 }
@@ -674,6 +682,7 @@ function initFilters() {
 /* ---------- Zagon ---------- */
 async function init() {
   buildStarfield();
+  initChrome();
   initSecretTrigger();
   initLogin();
   initAdmin();

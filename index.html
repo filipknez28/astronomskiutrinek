@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Astronomski Utrinek — dnevne novice iz vesolja: odkritja, rakete, planeti in opazovanja nočnega neba." />
+  <meta name="theme-color" content="#070708" />
   <title>Astronomski Utrinek — novice iz vesolja</title>
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="assets/favicon-64.png" sizes="64x64" type="image/png" />
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -38,45 +39,35 @@
   </header>
 
   <section class="hero" id="top">
-    <div class="container hero-grid">
-      <div class="hero-text reveal">
-        <p class="hero-kicker">✦ Dnevne novice iz vesolja</p>
-        <h1>Poglej gor.<br />Tam se vedno kaj <em>dogaja</em>.</h1>
-        <p class="hero-sub">
-          Vsak dan zbiramo sveže astronomske novice: odkritja teleskopov, izstrelitve raket,
-          skrivnosti planetov in nasvete za opazovanje nočnega neba.
-        </p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="#novice">Preberi novice</a>
-          <a class="btn btn-ghost" href="#o-strani">O strani</a>
-        </div>
-        <div class="hero-stats">
-          <span class="stat-pill">🛰 Živi viri novic</span>
-          <span class="stat-pill">5 kategorij</span>
-          <span class="stat-pill">☁ Oblačna shramba</span>
-        </div>
-      </div>
-      <figure class="hero-card" id="featuredCard" tabindex="0" role="button" aria-label="Odpri izbrano novico">
-        <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
-        <div class="hero-card-shade"></div>
-        <figcaption class="hero-card-caption">
-          <span class="badge badge-live" id="featuredBadge"><span class="live-dot"></span>Slika dneva</span>
-          <h2 id="featuredTitle">Zemlja ponoči iz vesolja</h2>
+    <figure class="hero-card" id="featuredCard" tabindex="0" role="button" aria-label="Odpri izbrano novico">
+      <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
+      <div class="hero-card-shade"></div>
+      <figcaption class="hero-card-caption">
+        <div class="hero-caption-inner">
+          <span class="badge badge-live" id="featuredBadge">Slika dneva</span>
+          <h1 id="featuredTitle">Zemlja ponoči iz vesolja</h1>
           <p id="featuredMeta"></p>
-        </figcaption>
-      </figure>
-    </div>
+        </div>
+      </figcaption>
+    </figure>
   </section>
+
+  <div class="edition-bar">
+    <div class="container edition-inner">
+      <p>Uredništvo · dnevnik vesolja</p>
+      <a href="#novice">Najnovejše zgodbe</a>
+    </div>
+  </div>
 
   <main id="novice" class="news-section">
     <div class="container">
       <div class="section-head reveal">
         <div>
-          <p class="section-kicker">Najnovejše objave</p>
+          <p class="section-kicker">Arhiv</p>
           <h2>Najnovejše novice</h2>
           <p class="section-sub" id="feedInfo">Nalagam novice&nbsp;…</p>
         </div>
-        <input type="search" id="searchInput" class="search-input" placeholder="Išči novice…" aria-label="Išči novice" />
+        <input type="search" id="searchInput" class="search-input" placeholder="Išči v arhivu" aria-label="Išči novice" />
       </div>
 
       <div class="chips reveal" id="chips" role="tablist" aria-label="Filtri novic">
@@ -86,7 +77,7 @@
         <button class="chip" data-filter="Rakete">Rakete</button>
         <button class="chip" data-filter="Opazovanje">Opazovanje</button>
         <button class="chip" data-filter="Raziskave">Raziskave</button>
-        <button class="chip" data-filter="Uredniške">✍ Uredniške</button>
+        <button class="chip" data-filter="Uredniške">Uredniške</button>
       </div>
 
       <div id="feed" class="news-grid"></div>
@@ -97,20 +88,23 @@
   <section id="o-strani" class="about">
     <div class="container about-grid">
       <div class="reveal">
-        <p class="section-kicker">Kdo smo</p>
+        <p class="section-kicker">Manifest</p>
         <h2>O strani</h2>
-        <p>
-          <strong>Astronomski Utrinek</strong> je zbirališče astronomskih novic v slovenščini.
-          Povzemamo sveža odkritja, spremljamo misije vesoljskih agencij in izpostavljamo dogodke,
-          ki jih lahko sami opazujete na nočnem nebu.
+        <p class="about-lead">
+          Vesolje se ne oglaša. Mi poslušamo namesto vas.
         </p>
         <p>
-          Podatke o aktualnih dogodkih v vesolju črpamo iz javnih virov vesoljskih agencij in
-          specializiranih novičarskih portalov, vsebine pa dopolnjuje naše uredništvo.
+          <strong>Astronomski Utrinek</strong> je slovenski dnevnik neba.
+          Povzemamo odkritja teleskopov, spremljamo misije in izpostavljamo
+          tisto, kar lahko večer kasneje vidite sami.
+        </p>
+        <p>
+          Vire črpamo iz javnih arhivov vesoljskih agencij in specializiranih
+          uredništev. Lokalne zgodbe doda naše uredništvo.
         </p>
       </div>
       <div class="about-card reveal">
-        <h3>🔭 Kdaj gledati v nebo?</h3>
+        <h3>Kdaj gledati v nebo</h3>
         <ul class="about-list">
           <li><strong>Nov luna</strong> — najtemnejše nebo za galaksije in meglice.</li>
           <li><strong>Poletni trikotnik</strong> — Vega, Deneb in Atair nad obzorjem.</li>
@@ -124,7 +118,7 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-        <span class="brand-mark brand-mark-icon">✦</span>
+        <span class="brand-mark brand-mark-icon">A</span>
         <p><strong>Astronomski Utrinek</strong><br />Novice iz vesolja, vsak dan.</p>
       </div>
       <nav class="footer-nav" aria-label="Navigacija v nogi">
@@ -135,6 +129,7 @@
     </div>
     <div class="container footer-bottom">
       <p id="secretTrigger" class="secret-trigger">© 2026 Astronomski Utrinek. Vse pravice pridržane.</p>
+      <p class="footer-issue">Številka 08 · Avgust 2026</p>
     </div>
   </footer>
 
@@ -142,7 +137,7 @@
   <div id="loginModal" class="modal hidden" aria-hidden="true">
     <div class="modal-backdrop" data-close="login"></div>
     <div class="modal-card modal-narrow" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-      <h3 id="loginTitle">🔐 Skrbniški dostop</h3>
+      <h3 id="loginTitle">Skrbniški dostop</h3>
       <p class="modal-sub">Vnesite skrbniško kodo za nadaljevanje.</p>
       <input type="password" id="adminCode" class="text-input" placeholder="Skrbniška koda" autocomplete="off" inputmode="numeric" />
       <p id="loginError" class="error hidden">Napačna koda. Poskusite znova.</p>
@@ -159,7 +154,7 @@
       <div class="admin-card">
         <header class="admin-header">
           <div>
-            <h3>🛠 Skrbniški meni</h3>
+            <h3>Skrbniški meni</h3>
             <p class="modal-sub">Pišite, urejajte in brišite članke. Spremembe so vidne takoj na strani.</p>
             <p class="admin-cloud-status" id="cloudStatus" aria-live="polite"></p>
           </div>
@@ -173,7 +168,7 @@
           <aside class="admin-side">
             <div class="admin-side-head">
               <h4>Vaši članki</h4>
-              <button class="btn btn-primary btn-small" id="newArticle">+ Nova novica</button>
+              <button class="btn btn-primary btn-small" id="newArticle">Nova novica</button>
             </div>
             <ul id="adminList" class="admin-list"></ul>
             <p id="adminListEmpty" class="admin-empty hidden">Še ni objavljenih člankov. Ustvarite prvo novico!</p>
@@ -212,7 +207,7 @@
               </div>
               <div class="form-actions">
                 <button type="button" class="btn btn-ghost" id="resetForm">Razveljavi</button>
-                <button type="submit" class="btn btn-primary">💾 Shrani in objavi</button>
+                <button type="submit" class="btn btn-primary">Shrani in objavi</button>
               </div>
             </form>
           </section>
@@ -235,7 +230,7 @@
         <h3 id="articleModalTitle">Naslov</h3>
         <p class="article-lead" id="articleModalSummary"></p>
         <div class="article-content" id="articleModalContent"></div>
-        <a id="articleModalLink" class="article-source" target="_blank" rel="noopener">Preberi izvirni vir ↗</a>
+        <a id="articleModalLink" class="article-source" target="_blank" rel="noopener">Preberi izvirni vir</a>
       </div>
     </div>
   </div>
