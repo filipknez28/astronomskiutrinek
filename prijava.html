@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07090f" />
+  <title>Prijava — Astronomski Utrinek</title>
+  <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="auth">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img class="brand-logo" src="assets/logo-clean.png" alt="Logotip Astronomski Utrinek" />
+        </span>
+      </a>
+      <nav class="main-nav" aria-label="Glavna navigacija">
+        <a href="index.html">Domov</a>
+        <a href="novice.html">Novice</a>
+        <a href="o-strani.html">O strani</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-page">
+    <div class="container auth-grid">
+      <section id="authGuest" class="auth-card">
+        <p class="section-kicker">Račun</p>
+        <h1>Prijava</h1>
+        <p class="modal-sub">Komentiraj in si shrani profil. Uredništvo ostane ločeno.</p>
+
+        <div class="auth-tabs">
+          <button type="button" class="chip is-active" data-auth-tab="login">Prijava</button>
+          <button type="button" class="chip" data-auth-tab="register">Nov profil</button>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <label>E-pošta<input id="loginEmail" class="text-input" type="email" required /></label>
+          <label>Geslo<input id="loginPass" class="text-input" type="password" required /></label>
+          <button class="btn btn-primary" type="submit">Prijava</button>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden">
+          <label>Ime<input id="regName" class="text-input" type="text" required placeholder="Tvoje ime" /></label>
+          <label>E-pošta<input id="regEmail" class="text-input" type="email" required /></label>
+          <label>Geslo<input id="regPass" class="text-input" type="password" required minlength="4" /></label>
+          <label class="btn btn-ghost">Slika profila
+            <input id="regPhoto" type="file" accept="image/*" hidden />
+          </label>
+          <img id="regPreview" class="profile-avatar hidden" alt="" />
+          <button class="btn btn-primary" type="submit">Ustvari profil</button>
+        </form>
+
+        <button type="button" class="btn btn-ghost btn-google" id="googleBtn">Nadaljuj z Google</button>
+        <p id="authError" class="error hidden"></p>
+      </section>
+
+      <section id="authUser" class="auth-card hidden">
+        <p class="section-kicker">Tvoj profil</p>
+        <div class="about-profile">
+          <img id="meAvatar" class="profile-avatar" alt="" />
+          <div>
+            <h1 id="meName">—</h1>
+            <p id="meEmail"></p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <a class="btn btn-ghost" href="novice.html">K novicam</a>
+          <button class="btn btn-danger-ghost" id="logoutBtn" type="button">Odjava</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-bottom">
+      <p id="secretTrigger" class="secret-trigger">© 2026 Astronomski Utrinek. Vse pravice pridržane.</p>
+    </div>
+  </footer>
+
+  <script src="firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script>
+    (function () {
+      const c = window.FIREBASE_CONFIG || {};
+      if (c.apiKey && window.firebase) {
+        try { firebase.initializeApp(c); } catch (e) { /* already */ }
+      }
+    })();
+  </script>
+  <script src="firebase.js"></script>
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -58,11 +58,39 @@ window.FB = (function () {
     await req("articles/" + key, { method: "DELETE" });
   }
 
+  async function loadComments(articleId) {
+    const data = await req("comments/" + encodeURIComponent(articleId));
+    if (!data) return [];
+    return Object.entries(data)
+      .filter(([, c]) => c && typeof c === "object")
+      .map(([id, c]) => ({ ...c, id }))
+      .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+  }
+
+  async function saveComment(articleId, comment) {
+    if (!articleId || !comment || !comment.id) throw new Error("Komentar ni veljaven");
+    await req(
+      "comments/" + encodeURIComponent(articleId) + "/" + encodeURIComponent(comment.id),
+      { method: "PUT", body: JSON.stringify(comment) }
+    );
+  }
+
+  async function saveUser(user) {
+    if (!user || !user.id) return;
+    await req("users/" + encodeURIComponent(user.id), {
+      method: "PUT",
+      body: JSON.stringify(user)
+    });
+  }
+
   return {
     isConfigured,
     loadArticles,
     saveArticle,
     deleteArticle,
+    loadComments,
+    saveComment,
+    saveUser,
     databaseURL: db
   };
 })();

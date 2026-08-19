@@ -4,6 +4,7 @@ const path = require("path");
 const { JSDOM } = require("jsdom");
 
 const appJs = fs.readFileSync(path.join(__dirname, "app.js"), "utf8");
+const authJs = fs.readFileSync(path.join(__dirname, "auth.js"), "utf8");
 
 function makeFB() {
   return {
@@ -20,9 +21,16 @@ function makeFB() {
       }
     },
     isConfigured: () => true,
+    comments: {},
     async loadArticles() { return Object.values(this.cloud); },
     async saveArticle(a) { this.cloud[a.id] = { ...a }; },
-    async deleteArticle(id) { delete this.cloud[id]; }
+    async deleteArticle(id) { delete this.cloud[id]; },
+    async loadComments(articleId) { return Object.values(this.comments[articleId] || {}); },
+    async saveComment(articleId, c) {
+      this.comments[articleId] = this.comments[articleId] || {};
+      this.comments[articleId][c.id] = { ...c };
+    },
+    async saveUser() {}
   };
 }
 
@@ -53,6 +61,7 @@ function boot(htmlFile, url, { FB, storage, nav } = {}) {
     Object.entries(storage.local || {}).forEach(([k, v]) => window.localStorage.setItem(k, v));
     Object.entries(storage.session || {}).forEach(([k, v]) => window.sessionStorage.setItem(k, v));
   }
+  window.eval(authJs);
   window.eval(appJs);
   return window;
 }
@@ -72,9 +81,9 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   const document = home.document;
   await tick(400);
 
-  // 1. Začetni prikaz: 6 semenskih novic + 1 novica iz oblaka
+  // 1. Začetni prikaz: samo novica iz oblaka (semena so izbrisana)
   const cards = document.querySelectorAll("#feed .news-card");
-  check(`Prikazanih ${cards.length} novic (pričakovano 7)`, cards.length === 7);
+  check(`Prikazanih ${cards.length} novic (pričakovano 1)`, cards.length === 1);
   check("Novica iz Firebase oblaka je vidna na strani",
     document.getElementById("feed").textContent.includes("Novica iz oblaka"));
   check("Izpostavljena novica ima naslov", document.getElementById("featuredTitle").textContent.length > 5);
@@ -137,6 +146,9 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
     !!adminWin.document.getElementById("editorToolbar") &&
     !!adminWin.document.querySelector("[data-cmd='link']") &&
     !!adminWin.document.querySelector("[data-cmd='image-file']"));
+  check("Studio za izrez naslovne slike je v uredništvu",
+    !!adminWin.document.getElementById("cropStudio") &&
+    !!adminWin.document.getElementById("cropZoom"));
 
   // 5. Ustvarjanje članka
   adminWin.document.getElementById("fTitle").value = "Testna novica iz admina";
@@ -175,6 +187,7 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Naslov v članku se ujema", artWin.document.getElementById("articleModalTitle").textContent === "Testna novica iz admina");
   check("Odstavki so izpisani", artWin.document.querySelectorAll("#articleModalContent p").length === 2);
   check("Članek je celostranski, ne overlay", artWin.document.body.dataset.page === "article" && !artWin.document.querySelector(".modal-backdrop"));
+  check("Na članku so komentarji", !!artWin.document.getElementById("commentsBox"));
 
   // 7. Urejanje iz admin panela
   adminWin.document.querySelector(".admin-list-item").click();
@@ -205,17 +218,23 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
   // 9. Iskanje in filter
   const search = homeAfterDelete.document.getElementById("searchInput");
-  search.value = "NGC 1333";
+  search.value = "oblaka";
   search.dispatchEvent(new homeAfterDelete.MouseEvent("input", { bubbles: true }));
   await tick(300);
-  check("Iskanje 'NGC 1333' vrne 1 novico", homeAfterDelete.document.querySelectorAll("#feed .news-card").length === 1);
+  check("Iskanje 'oblaka' vrne 1 novico", homeAfterDelete.document.querySelectorAll("#feed .news-card").length === 1);
   search.value = "";
   search.dispatchEvent(new homeAfterDelete.MouseEvent("input", { bubbles: true }));
   await tick(300);
-  const chipRakete = [...homeAfterDelete.document.querySelectorAll(".chip")].find((c) => c.dataset.filter === "Rakete");
-  chipRakete.click();
-  check("Filter 'Rakete' vrne 1 novico", homeAfterDelete.document.querySelectorAll("#feed .news-card").length === 1);
+  const chipVesolje = [...homeAfterDelete.document.querySelectorAll(".chip")].find((c) => c.dataset.filter === "Vesolje");
+  chipVesolje.click();
+  check("Filter 'Vesolje' vrne 1 novico", homeAfterDelete.document.querySelectorAll("#feed .news-card").length === 1);
   homeAfterDelete.document.querySelector('.chip[data-filter="Vse"]').click();
+
+  const authWin = boot("prijava.html", "http://localhost/prijava.html", { FB, nav: { url: "" } });
+  await tick(50);
+  check("Stran za prijavo obstaja", !!authWin.document.getElementById("loginForm"));
+  check("Lahko ustvariš svoj profil", !!authWin.document.getElementById("registerForm"));
+  check("Gumb za Google prijavo je tu", !!authWin.document.getElementById("googleBtn"));
 
   // 10. Sprožilec brez povratne informacije
   const before = trigger.getAttribute("style");

@@ -100,16 +100,26 @@
                   </div>
                 </div>
                 <div class="form-field">
-                  <label>Naslovna slika</label>
-                  <div class="cover-row">
-                    <img id="coverPreview" class="cover-preview hidden" alt="Predogled naslovne slike" />
-                    <div class="cover-fields">
-                      <input id="fImage" class="text-input" type="text" placeholder="https://primer.si/slika.jpg" />
-                      <label class="btn btn-small">
-                        Naloži z diska
-                        <input type="file" id="coverFile" accept="image/*" hidden />
-                      </label>
+                  <label>Naslovna slika in izrez</label>
+                  <div class="cover-fields">
+                    <input id="fImage" class="text-input" type="text" placeholder="https://primer.si/slika.jpg" />
+                    <label class="btn btn-small">
+                      Naloži z diska
+                      <input type="file" id="coverFile" accept="image/*" hidden />
+                    </label>
+                  </div>
+                  <div id="cropStudio" class="crop-studio hidden">
+                    <div class="crop-stage" id="cropStage">
+                      <img id="coverPreview" class="crop-img" alt="Izrez" />
+                      <span class="crop-mask" aria-hidden="true"></span>
                     </div>
+                    <p class="crop-hint">Povleci sliko. Tako bo obrezana na kartici in naslovnici.</p>
+                    <label class="crop-zoom">Približaj
+                      <input type="range" id="cropZoom" min="100" max="220" value="100" />
+                    </label>
+                    <input type="hidden" id="fImageX" value="50" />
+                    <input type="hidden" id="fImageY" value="50" />
+                    <input type="hidden" id="fImageZ" value="1" />
                   </div>
                 </div>
                 <div class="form-field">
@@ -170,6 +180,7 @@
   <script src="firebase-config.js"></script>
   <script src="firebase.js"></script>
   <script src="editor.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
