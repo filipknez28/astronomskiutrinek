@@ -83,5 +83,7 @@ npx serve .
 - `firebase.js` — REST odjemalec za Firebase Realtime Database
 - `firebase-config.js` — tvoj URL baze (izpolni po navodilih zgoraj)
 - `assets/` — lokalne slike za začetne članke
-- `assets/123456789.png` — logotip v levem zgornjem kotu (če datoteka manjka, stran samodejno prikaže rezervni simbol ✦ z imenom)
+- `assets/logo.png` — logotip v levem zgornjem kotu (uporabnikov logotip z odstranjenim ozadjem; če datoteka manjka, stran samodejno prikaže rezervni simbol ✦ z imenom)
+- `assets/aqw.png` — uporabnikov originalni logotip (kakršen je bil naložen)
+- `assets/123456789.png` — prejšnji, uporabniško naloženi logotip (hranjen v repozitoriju)
 - `assets/favicon-*.png` — faviconi, generirani iz logotipa
