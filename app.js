@@ -3,7 +3,7 @@
 /* ---------- Konstante ---------- */
 const LS_KEY = "astronomski-utrinek-articles-v1";
 const SESSION_KEY = "astronomski-utrinek-admin";
-const ADMIN_CODE = "123456789";          // skrbniška koda
+const ADMIN_CODE = "1237";               // skrbniška koda
 const TRIGGER_TAPS = 10;                  // število tapov na skriti sprožilec
 const TAP_WINDOW_MS = 2500;               // max razmik med dvema tapoma
 
@@ -693,12 +693,18 @@ function initComposer() {
       const f = file.files && file.files[0];
       file.value = "";
       if (!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (cover) cover.value = reader.result;
-        updateCoverPreview(reader.result);
+      const run = async () => {
+        const src = window.AUEditor && AUEditor.compressImage
+          ? await AUEditor.compressImage(f)
+          : await new Promise((res) => {
+              const r = new FileReader();
+              r.onload = () => res(r.result);
+              r.readAsDataURL(f);
+            });
+        if (cover) cover.value = src;
+        updateCoverPreview(src);
       };
-      reader.readAsDataURL(f);
+      run();
     });
   }
   const photo = $("profilePhoto");

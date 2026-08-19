@@ -1,4 +1,4 @@
-/* Urejevalnik člankov — orodna vrstica + varen HTML */
+/* Sodoben urejevalnik — slike ostanejo slike, ne base64 v textarea */
 (function (global) {
   const ALLOWED = {
     P: 1, BR: 1, STRONG: 1, B: 1, EM: 1, I: 1, U: 1, A: 1, IMG: 1,
@@ -59,8 +59,39 @@
     return looksLikeHtml(raw) ? sanitizeHtml(raw) : textToHtml(raw);
   }
 
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("read"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 1400;
+          let { width, height } = img;
+          if (width > max || height > max) {
+            const s = Math.min(max / width, max / height);
+            width = Math.round(width * s);
+            height = Math.round(height * s);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = () => resolve(reader.result);
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function bind(textarea, surface, toolbar) {
     if (!textarea || !surface) return { get: () => textarea.value, set: () => {} };
+
+    textarea.setAttribute("hidden", "");
+    textarea.setAttribute("aria-hidden", "true");
+    textarea.tabIndex = -1;
 
     const syncDown = () => {
       textarea.value = surface.innerHTML.trim();
@@ -74,7 +105,14 @@
     else surface.innerHTML = "<p><br></p>";
 
     surface.addEventListener("input", syncDown);
-    surface.addEventListener("blur", syncDown);
+    surface.addEventListener("paste", (e) => {
+      const html = e.clipboardData && e.clipboardData.getData("text/html");
+      const text = e.clipboardData && e.clipboardData.getData("text/plain");
+      if (!html && !text) return;
+      e.preventDefault();
+      document.execCommand("insertHTML", false, html ? sanitizeHtml(html) : textToHtml(text));
+      syncDown();
+    });
 
     const cmd = (name, val = null) => {
       surface.focus();
@@ -82,10 +120,19 @@
       syncDown();
     };
 
+    const insertImage = (src) => {
+      surface.focus();
+      document.execCommand(
+        "insertHTML",
+        false,
+        `<figure class="editor-figure"><img src="${src}" alt=""></figure><p><br></p>`
+      );
+      syncDown();
+    };
+
     if (toolbar) {
       toolbar.addEventListener("mousedown", (e) => {
-        const btn = e.target.closest("[data-cmd]");
-        if (btn) e.preventDefault();
+        if (e.target.closest("[data-cmd]")) e.preventDefault();
       });
       toolbar.addEventListener("click", (e) => {
         const btn = e.target.closest("[data-cmd]");
@@ -98,7 +145,7 @@
         }
         if (c === "image-url") {
           const url = window.prompt("Naslov slike (https://…)", "https://");
-          if (url) cmd("insertImage", url.trim());
+          if (url) insertImage(url.trim());
           return;
         }
         if (c === "image-file") {
@@ -114,13 +161,11 @@
       });
       const file = toolbar.querySelector("[data-image-file]");
       if (file) {
-        file.addEventListener("change", () => {
+        file.addEventListener("change", async () => {
           const f = file.files && file.files[0];
           file.value = "";
           if (!f) return;
-          const reader = new FileReader();
-          reader.onload = () => cmd("insertImage", reader.result);
-          reader.readAsDataURL(f);
+          insertImage(await compressImage(f));
         });
       }
     }
@@ -128,5 +173,5 @@
     return { get: () => surface.innerHTML.trim(), set, sync: syncDown };
   }
 
-  global.AUEditor = { sanitizeHtml, toHtml, looksLikeHtml, bind };
+  global.AUEditor = { sanitizeHtml, toHtml, looksLikeHtml, bind, compressImage };
 })(window);

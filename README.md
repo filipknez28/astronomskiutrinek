@@ -15,7 +15,7 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
 - **Skriti skrbniški meni** — sproži se z desetimi hitrimi dotiki na besedilo
   »Vse pravice pridržane« na dnu strani (brez kakršnekoli animacije ali povratne
   informacije). Odpre se **celostranska** prijava (`admin.html`); po kodi
-  (`123456789`) je uredništvo prav tako celostransko. Uredniški članki se
+  (`1237`) je uredništvo prav tako celostransko. Uredniški članki se
   shranijo lokalno v brskalnik in so takoj vidni na vrhu novice na strani.
 - **Firebase Realtime Database (testni način)** — če je nastavljen, so uredniški članki
   shranjeni v oblak in vidni vsem obiskovalcem (glej spodaj).

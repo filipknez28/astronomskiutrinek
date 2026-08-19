@@ -81,8 +81,8 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
   // 1b. Logotip in favicon
   const headerLogo = document.querySelector(".site-header .brand-logo");
-  check("Logotip v glavi kaže na originalni assets/aqw.png",
-    headerLogo && headerLogo.getAttribute("src") === "assets/aqw.png");
+  check("Logotip v glavi je brez črnega okvirja",
+    headerLogo && headerLogo.getAttribute("src") === "assets/logo-clean.png");
   check("Favicon uporablja assets/favicon-32.png",
     !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
   check("Zunanji Spaceflight API je odstranjen",
@@ -127,7 +127,7 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Napačna koda -> sporočilo o napaki", !adminWin.document.getElementById("loginError").classList.contains("hidden"));
   check("Napačna koda -> skrbniški meni ostane skrit", adminWin.document.getElementById("adminPanel").classList.contains("hidden"));
 
-  code.value = "123456789";
+  code.value = "1237";
   adminWin.document.getElementById("submitCode").click();
   check("Pravilna koda -> prijava se zapre", adminWin.document.getElementById("loginModal").classList.contains("hidden"));
   check("Pravilna koda -> odpre se skrbniški meni", !adminWin.document.getElementById("adminPanel").classList.contains("hidden"));
