@@ -32,6 +32,13 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check(`Prikazanih ${cards.length} semenskih novic (pričakovano 6)`, cards.length === 6);
   check("Izpostavljena novica ima naslov", document.getElementById("featuredTitle").textContent.length > 5);
 
+  // 1b. Logotip v glavi
+  const headerLogo = document.querySelector(".site-header .brand-logo");
+  check("Logotip v glavi kaže na assets/123456789.png",
+    headerLogo && headerLogo.getAttribute("src") === "assets/123456789.png");
+  check("Favicon uporablja assets/favicon-32.png",
+    !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
+
   // 2. Sprožilec: 9 tapov -> nič, 10. tap -> prijavno okno
   const trigger = document.getElementById("secretTrigger");
   const tap = () => trigger.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
