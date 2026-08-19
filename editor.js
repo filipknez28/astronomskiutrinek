@@ -59,28 +59,36 @@
     return looksLikeHtml(raw) ? sanitizeHtml(raw) : textToHtml(raw);
   }
 
-  function compressImage(file) {
+  function squeezeDataUrl(src, max, quality) {
+    return new Promise((resolve) => {
+      if (!src) return resolve("");
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > max || height > max) {
+          const s = Math.min(max / width, max / height);
+          width = Math.round(width * s);
+          height = Math.round(height * s);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+  }
+
+  function compressImage(file, opts) {
+    const max = (opts && opts.max) || 1400;
+    const quality = (opts && opts.quality) || 0.82;
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = () => reject(new Error("read"));
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const max = 1400;
-          let { width, height } = img;
-          if (width > max || height > max) {
-            const s = Math.min(max / width, max / height);
-            width = Math.round(width * s);
-            height = Math.round(height * s);
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", 0.82));
-        };
-        img.onerror = () => resolve(reader.result);
-        img.src = reader.result;
+      reader.onload = async () => {
+        resolve(await squeezeDataUrl(reader.result, max, quality));
       };
       reader.readAsDataURL(file);
     });
@@ -173,5 +181,5 @@
     return { get: () => surface.innerHTML.trim(), set, sync: syncDown };
   }
 
-  global.AUEditor = { sanitizeHtml, toHtml, looksLikeHtml, bind, compressImage };
+  global.AUEditor = { sanitizeHtml, toHtml, looksLikeHtml, bind, compressImage, squeezeDataUrl };
 })(window);

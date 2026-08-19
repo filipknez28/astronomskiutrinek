@@ -69,9 +69,42 @@
 
   async function login(email, password) {
     email = String(email || "").trim().toLowerCase();
-    const user = loadUsers().find((u) => u.email === email);
+    let user = loadUsers().find((u) => u.email === email);
+    if (!user && global.FB && FB.loadUserByEmail) {
+      try { user = await FB.loadUserByEmail(email); } catch (e) { /* offline */ }
+      if (user) {
+        const others = loadUsers().filter((u) => u.id !== user.id && u.email !== user.email);
+        others.push(user);
+        saveUsers(others);
+      }
+    }
     if (!user || user.pass !== await digest(password)) throw new Error("Napačen e-naslov ali geslo.");
     setSession(user);
+    return current();
+  }
+
+  async function updateAvatar(avatar) {
+    const sess = current();
+    if (!sess) throw new Error("Nisi prijavljen.");
+    const users = loadUsers();
+    const idx = users.findIndex((u) => u.id === sess.id || u.email === sess.email);
+    const next = { ...(idx >= 0 ? users[idx] : sess), avatar: avatar || "" };
+    if (idx >= 0) users[idx] = next;
+    else users.push(next);
+    saveUsers(users);
+    setSession(next);
+    if (global.FB && FB.saveUser) {
+      try {
+        await FB.saveUser({
+          id: next.id,
+          name: next.name,
+          email: next.email,
+          avatar: next.avatar,
+          provider: next.provider || "local",
+          pass: next.pass || ""
+        });
+      } catch (e) { /* ignore */ }
+    }
     return current();
   }
 
@@ -109,5 +142,5 @@
     return current();
   }
 
-  global.AUAuth = { current, register, login, logout, loginGoogle, googleReady };
+  global.AUAuth = { current, register, login, logout, loginGoogle, googleReady, updateAvatar };
 })(window);

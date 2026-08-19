@@ -225,6 +225,68 @@ function saveProfile(p) {
 }
 let profile = loadProfile();
 
+function paintPublicProfile() {
+  document.querySelectorAll("[data-editor-avatar]").forEach((img) => {
+    img.src = profile.avatar || DEFAULT_PROFILE.avatar;
+    img.alt = profile.name || DEFAULT_PROFILE.name;
+  });
+  paintProfile();
+}
+
+async function persistProfile(next) {
+  profile = { ...DEFAULT_PROFILE, ...next, updatedAt: Date.now() };
+  saveProfile(profile);
+  paintPublicProfile();
+  if (fbReady() && FB.saveSiteProfile) {
+    try {
+      await FB.saveSiteProfile({
+        name: profile.name,
+        role: profile.role,
+        avatar: profile.avatar,
+        updatedAt: profile.updatedAt
+      });
+    } catch (e) { /* offline */ }
+  }
+}
+
+async function syncProfileFromCloud() {
+  let remote = null;
+  if (fbReady() && FB.loadSiteProfile) {
+    try { remote = await FB.loadSiteProfile(); } catch (e) { /* offline */ }
+  }
+  const local = loadProfile();
+  const localTs = Number(local.updatedAt || 0);
+  const remoteTs = Number(remote && remote.updatedAt || 0);
+  const localCustom = !!(local.avatar && local.avatar !== DEFAULT_PROFILE.avatar);
+  const remoteCustom = !!(remote && remote.avatar && remote.avatar !== DEFAULT_PROFILE.avatar);
+
+  if (remoteCustom && remoteTs >= localTs) {
+    profile = { ...DEFAULT_PROFILE, ...remote };
+    saveProfile(profile);
+  } else if (localCustom) {
+    profile = local;
+    if (fbReady() && FB.saveSiteProfile) {
+      try {
+        const avatar = window.AUEditor && AUEditor.squeezeDataUrl && String(local.avatar).startsWith("data:")
+          ? await AUEditor.squeezeDataUrl(local.avatar, 480, 0.84)
+          : local.avatar;
+        profile = { ...local, avatar, updatedAt: localTs || Date.now() };
+        saveProfile(profile);
+        await FB.saveSiteProfile({
+          name: profile.name,
+          role: profile.role,
+          avatar: profile.avatar,
+          updatedAt: profile.updatedAt
+        });
+      } catch (e) { /* ignore */ }
+    }
+  } else if (remote && remote.name) {
+    profile = { ...DEFAULT_PROFILE, ...remote };
+    saveProfile(profile);
+  }
+  paintPublicProfile();
+}
+
 function renderRich(raw) {
   if (window.AUEditor) return AUEditor.toHtml(raw);
   return paragraphs(raw);
@@ -578,11 +640,17 @@ function paintArticle(a) {
 }
 
 
+function avatarOf(a) {
+  const name = authorOf(a);
+  if (name === profile.name && profile.avatar) return profile.avatar;
+  return (a && a.authorImage) || profile.avatar || DEFAULT_PROFILE.avatar;
+}
+
 function paintByline(a) {
   const box = $("articleByline");
   if (!box) return;
   const name = authorOf(a);
-  const avatar = (a && a.authorImage) || profile.avatar || DEFAULT_PROFILE.avatar;
+  const avatar = avatarOf(a);
   box.innerHTML = `
     <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" />
     <div>
@@ -942,13 +1010,17 @@ function initComposer() {
       const f = photo.files && photo.files[0];
       photo.value = "";
       if (!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        profile = { ...profile, avatar: reader.result };
-        saveProfile(profile);
-        paintProfile();
+      const run = async () => {
+        const src = window.AUEditor && AUEditor.compressImage
+          ? await AUEditor.compressImage(f, { max: 480, quality: 0.84 })
+          : await new Promise((res) => {
+              const r = new FileReader();
+              r.onload = () => res(r.result);
+              r.readAsDataURL(f);
+            });
+        await persistProfile({ ...profile, avatar: src });
       };
-      reader.readAsDataURL(f);
+      run();
     });
   }
 }
@@ -1193,15 +1265,39 @@ function initAuthPage() {
     $("regPhoto").addEventListener("change", () => {
       const f = $("regPhoto").files && $("regPhoto").files[0];
       if (!f) return;
-      const r = new FileReader();
-      r.onload = () => {
-        avatar = r.result;
+      const run = async () => {
+        avatar = window.AUEditor && AUEditor.compressImage
+          ? await AUEditor.compressImage(f, { max: 480, quality: 0.84 })
+          : await new Promise((res) => {
+              const r = new FileReader();
+              r.onload = () => res(r.result);
+              r.readAsDataURL(f);
+            });
         if ($("regPreview")) {
           $("regPreview").src = avatar;
           $("regPreview").classList.remove("hidden");
         }
       };
-      r.readAsDataURL(f);
+      run();
+    });
+  }
+  if ($("mePhoto")) {
+    $("mePhoto").addEventListener("change", async () => {
+      const f = $("mePhoto").files && $("mePhoto").files[0];
+      $("mePhoto").value = "";
+      if (!f || !AUAuth.updateAvatar) return;
+      try {
+        const src = window.AUEditor && AUEditor.compressImage
+          ? await AUEditor.compressImage(f, { max: 480, quality: 0.84 })
+          : await new Promise((res) => {
+              const r = new FileReader();
+              r.onload = () => res(r.result);
+              r.readAsDataURL(f);
+            });
+        await AUAuth.updateAvatar(src);
+        showErr("");
+        paint();
+      } catch (err) { showErr(err.message); }
     });
   }
   if ($("registerForm")) {

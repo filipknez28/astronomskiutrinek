@@ -81,6 +81,31 @@ window.FB = (function () {
       method: "PUT",
       body: JSON.stringify(user)
     });
+    if (user.email) {
+      const key = encodeURIComponent(String(user.email).toLowerCase().replace(/\./g, ","));
+      await req("usersByEmail/" + key, {
+        method: "PUT",
+        body: JSON.stringify({ id: user.id })
+      });
+    }
+  }
+
+  async function loadUserByEmail(email) {
+    const key = encodeURIComponent(String(email || "").toLowerCase().replace(/\./g, ","));
+    if (!key) return null;
+    const ref = await req("usersByEmail/" + key);
+    if (!ref || !ref.id) return null;
+    const user = await req("users/" + encodeURIComponent(ref.id));
+    return user && typeof user === "object" ? { ...user, id: user.id || ref.id } : null;
+  }
+
+  async function loadSiteProfile() {
+    const data = await req("site/profile");
+    return data && typeof data === "object" ? data : null;
+  }
+
+  async function saveSiteProfile(profile) {
+    await req("site/profile", { method: "PUT", body: JSON.stringify(profile) });
   }
 
   return {
@@ -91,6 +116,9 @@ window.FB = (function () {
     loadComments,
     saveComment,
     saveUser,
+    loadUserByEmail,
+    loadSiteProfile,
+    saveSiteProfile,
     databaseURL: db
   };
 })();
