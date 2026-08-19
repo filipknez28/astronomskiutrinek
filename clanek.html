@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Astronomski Utrinek — dnevne novice iz vesolja: odkritja, rakete, planeti in opazovanja nočnega neba." />
+  <meta name="description" content="Članek — Astronomski Utrinek." />
   <meta name="theme-color" content="#070708" />
-  <title>Astronomski Utrinek — novice iz vesolja</title>
+  <title>Članek — Astronomski Utrinek</title>
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="assets/favicon-64.png" sizes="64x64" type="image/png" />
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body data-page="home">
+<body data-page="article">
   <div id="starfield" class="starfield" aria-hidden="true"></div>
 
   <header class="site-header">
@@ -28,58 +28,28 @@
         <span class="brand-text">Astronomski <strong>Utrinek</strong></span>
       </a>
       <nav class="main-nav" aria-label="Glavna navigacija">
-        <a href="index.html" aria-current="page">Domov</a>
+        <a href="index.html">Domov</a>
         <a href="novice.html">Novice</a>
         <a href="o-strani.html">O strani</a>
       </nav>
     </div>
   </header>
 
-  <section class="hero" id="top">
-    <figure class="hero-card" id="featuredCard" tabindex="0" role="link" aria-label="Odpri izbrano novico">
-      <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
-      <div class="hero-card-shade"></div>
-      <figcaption class="hero-card-caption">
-        <div class="hero-caption-inner">
-          <span class="badge badge-live" id="featuredBadge">Slika dneva</span>
-          <h1 id="featuredTitle">Zemlja ponoči iz vesolja</h1>
-          <p id="featuredMeta"></p>
-        </div>
-      </figcaption>
+  <main class="story-page" id="articlePage">
+    <figure class="story-hero">
+      <img id="articleModalImg" src="assets/hero.jpg" alt="" />
     </figure>
-  </section>
-
-  <div class="edition-bar">
-    <div class="container edition-inner">
-      <p>Uredništvo · dnevnik vesolja</p>
-      <a href="novice.html">Celoten arhiv</a>
-    </div>
-  </div>
-
-  <main id="novice" class="news-section">
-    <div class="container">
-      <div class="section-head reveal">
-        <div>
-          <p class="section-kicker">Arhiv</p>
-          <h2>Najnovejše novice</h2>
-          <p class="section-sub" id="feedInfo">Nalagam novice&nbsp;…</p>
-        </div>
-        <input type="search" id="searchInput" class="search-input" placeholder="Išči v arhivu" aria-label="Išči novice" />
+    <article class="container story-body">
+      <a class="story-back" href="novice.html">Nazaj na novice</a>
+      <div class="article-meta-row">
+        <span class="badge" id="articleModalBadge">Vesolje</span>
+        <time id="articleModalDate"></time>
       </div>
-
-      <div class="chips reveal" id="chips" role="tablist" aria-label="Filtri novic">
-        <button class="chip is-active" data-filter="Vse">Vse</button>
-        <button class="chip" data-filter="Vesolje">Vesolje</button>
-        <button class="chip" data-filter="Planeti">Planeti</button>
-        <button class="chip" data-filter="Rakete">Rakete</button>
-        <button class="chip" data-filter="Opazovanje">Opazovanje</button>
-        <button class="chip" data-filter="Raziskave">Raziskave</button>
-        <button class="chip" data-filter="Uredniške">Uredniške</button>
-      </div>
-
-      <div id="feed" class="news-grid"></div>
-      <div id="feedStatus" class="feed-status hidden"></div>
-    </div>
+      <h1 id="articleModalTitle">Nalagam članek…</h1>
+      <p class="article-lead" id="articleModalSummary"></p>
+      <div class="article-content" id="articleModalContent"></div>
+      <a id="articleModalLink" class="article-source hidden" target="_blank" rel="noopener">Vir</a>
+    </article>
   </main>
 
   <footer class="site-footer">

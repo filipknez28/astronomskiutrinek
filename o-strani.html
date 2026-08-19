@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="O uredništvu Astronomski Utrinek — slovenski dnevnik neba." />
+  <meta name="theme-color" content="#efe8db" />
+  <title>O strani — Astronomski Utrinek</title>
+  <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="assets/favicon-64.png" sizes="64x64" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="about">
+  <header class="site-header header-on-paper">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">
+          <img class="brand-logo" src="assets/aqw.png" alt="Logotip Astronomski Utrinek"
+               onerror="var p=this.parentElement; this.remove(); p.classList.add('is-fallback'); p.parentElement.classList.add('is-fallback');" />
+          <span class="brand-emoji" aria-hidden="true">✦</span>
+        </span>
+        <span class="brand-text">Astronomski <strong>Utrinek</strong></span>
+      </a>
+      <nav class="main-nav" aria-label="Glavna navigacija">
+        <a href="index.html">Domov</a>
+        <a href="novice.html">Novice</a>
+        <a href="o-strani.html" aria-current="page">O strani</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="o-strani" class="about about-page">
+    <div class="container about-grid">
+      <div>
+        <p class="section-kicker">Manifest</p>
+        <h1>O strani</h1>
+        <p class="about-lead">
+          Vesolje se ne oglaša. Mi poslušamo namesto vas.
+        </p>
+        <p>
+          <strong>Astronomski Utrinek</strong> je slovenski dnevnik neba.
+          Povzemamo odkritja teleskopov, spremljamo misije in izpostavljamo
+          tisto, kar lahko večer kasneje vidite sami.
+        </p>
+        <p>
+          Vire črpamo iz javnih arhivov vesoljskih agencij in specializiranih
+          uredništev. Lokalne zgodbe doda naše uredništvo. Vsak članek odprete
+          na lastni strani — brez oken čez stran.
+        </p>
+      </div>
+      <div class="about-card">
+        <h2>Kdaj gledati v nebo</h2>
+        <ul class="about-list">
+          <li><strong>Nov luna</strong> — najtemnejše nebo za galaksije in meglice.</li>
+          <li><strong>Poletni trikotnik</strong> — Vega, Deneb in Atair nad obzorjem.</li>
+          <li><strong>Perzeidi</strong> — meteorski roj vsako leto sredi avgusta.</li>
+          <li><strong>Mednarodna vesoljska postaja</strong> — vidna preleti ob mraku.</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark brand-mark-icon">A</span>
+        <p><strong>Astronomski Utrinek</strong><br />Novice iz vesolja, vsak dan.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Navigacija v nogi">
+        <a href="index.html">Domov</a>
+        <a href="novice.html">Novice</a>
+        <a href="o-strani.html">O strani</a>
+      </nav>
+    </div>
+    <div class="container footer-bottom">
+      <p id="secretTrigger" class="secret-trigger">© 2026 Astronomski Utrinek. Vse pravice pridržane.</p>
+      <p class="footer-issue">Številka 08 · Avgust 2026</p>
+    </div>
+  </footer>
+
+  <script src="firebase-config.js"></script>
+  <script src="firebase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

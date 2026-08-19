@@ -81,9 +81,34 @@ let searchTerm = "";
 let editingId = null;
 
 const CATEGORIES = ["Vesolje", "Planeti", "Rakete", "Opazovanje", "Raziskave"];
+const OPEN_KEY = "astronomski-utrinek-open";
+const PAGE = (document.body && document.body.dataset.page) || "home";
 
 /* ---------- Pripomočki ---------- */
 const $ = (id) => document.getElementById(id);
+
+function navigate(url) {
+  if (typeof window.__navigate === "function") {
+    window.__navigate(url);
+    return;
+  }
+  window.location.href = url;
+}
+
+function articleUrl(id) {
+  return "clanek.html?id=" + encodeURIComponent(id);
+}
+
+function rememberOpen(article) {
+  try { sessionStorage.setItem(OPEN_KEY, JSON.stringify(article)); } catch (e) { /* ignore */ }
+}
+
+function recalledOpen() {
+  try {
+    const raw = sessionStorage.getItem(OPEN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
 
 function loadArticles() {
   try {
@@ -162,21 +187,6 @@ function initChrome() {
   const onScroll = () => header.classList.toggle("is-scrolled", (window.scrollY || 0) > 12);
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
-}
-
-/* ---------- Tekoči pas novic (ticker) ---------- */
-function fillTicker() {
-  const track = $("tickerTrack");
-  if (!track) return;
-  const titles = allArticles().slice(0, 12).map((a) => a.title);
-  if (!titles.length) {
-    track.closest(".ticker").classList.add("hidden");
-    return;
-  }
-  const items = titles
-    .map((t) => `<span class="ticker-item">${escapeHtml(t)}</span>`)
-    .join("");
-  track.innerHTML = items + items; // podvojeno za neskončno zankanje
 }
 
 /* ---------- Prikaz ob prihodu (scroll reveal) ---------- */
@@ -294,17 +304,20 @@ function matchesFilters(a) {
 
 function renderFeed() {
   const feed = $("feed");
+  if (!feed) return;
   const list = allArticles().filter(matchesFilters);
   const info = $("feedInfo");
 
   if (list.length === 0) {
     feed.innerHTML = "";
-    $("feedStatus").classList.remove("hidden");
-    $("feedStatus").innerHTML =
-      "Ni zadetkov za izbrani filter ali iskalni niz.";
+    if ($("feedStatus")) {
+      $("feedStatus").classList.remove("hidden");
+      $("feedStatus").innerHTML =
+        "Ni zadetkov za izbrani filter ali iskalni niz.";
+    }
     return;
   }
-  $("feedStatus").classList.add("hidden");
+  if ($("feedStatus")) $("feedStatus").classList.add("hidden");
 
   feed.innerHTML = list
     .map((a) => {
@@ -316,8 +329,8 @@ function renderFeed() {
                onerror="this.parentElement.classList.add('no-img'); this.remove();" />`
         : "";
       return `
-      <article class="news-card reveal" data-id="${escapeHtml(a.id)}" tabindex="0" role="button"
-               aria-label="Preberi: ${escapeHtml(a.title)}">
+      <a class="news-card reveal" data-id="${escapeHtml(a.id)}" href="${articleUrl(a.id)}"
+         aria-label="Preberi: ${escapeHtml(a.title)}">
         <div class="card-img ${img ? "" : "no-img"}">
           ${img}
           ${badges}
@@ -326,9 +339,9 @@ function renderFeed() {
           <time>${formatDate(a.date)}</time>
           <h3>${escapeHtml(a.title)}</h3>
           <p>${escapeHtml(a.summary)}</p>
-          <button class="read-more">Preberi več →</button>
+          <span class="read-more">Preberi zgodbo</span>
         </div>
-      </article>`;
+      </a>`;
     })
     .join("");
 
@@ -336,13 +349,15 @@ function renderFeed() {
   const srcText = apiLive ? "vir: Spaceflight News API" : "lokalna zbirka novic";
   const nPlural = (n) => (n === 1 ? "novica" : n === 2 ? "novici" : n === 3 || n === 4 ? "novice" : "novic");
   const oPlural = (n) => (n === 1 ? "ka" : n === 2 ? "ki" : n === 3 || n === 4 ? "ke" : "kih");
-  info.textContent = `${list.length} ${nPlural(list.length)}${ownCount ? ` (od tega ${ownCount} uredniš${oPlural(ownCount)})` : ""} • ${srcText}`;
+  if (info) {
+    info.textContent = `${list.length} ${nPlural(list.length)}${ownCount ? ` (od tega ${ownCount} uredniš${oPlural(ownCount)})` : ""} • ${srcText}`;
+  }
 
   feed.querySelectorAll(".news-card").forEach((card) => {
-    const open = () => openArticle(card.dataset.id);
-    card.addEventListener("click", open);
-    card.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+    card.addEventListener("click", (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      openArticle(card.dataset.id);
     });
   });
 
@@ -350,7 +365,7 @@ function renderFeed() {
 }
 
 function renderFeatured() {
-  if (!featured) return;
+  if (!featured || !$("featuredTitle")) return;
   $("featuredImg").src = featured.image;
   $("featuredTitle").textContent = featured.title;
   $("featuredMeta").textContent = featured.date
@@ -363,53 +378,78 @@ function renderFeatured() {
   };
 }
 
-function openArticle(id) {
-  const a =
+function findArticle(id) {
+  return (
     allArticles().find((x) => x.id === id) ||
-    (featured && featured.id === id ? featured : null);
-  if (!a) return;
-  $("articleModalImg").src = a.image || "assets/hero.jpg";
-  $("articleModalImg").alt = a.title;
-  $("articleModalBadge").textContent = a.own ? "✍ Uredniška" : a.category;
-  $("articleModalDate").textContent = formatDate(a.date);
-  $("articleModalTitle").textContent = a.title;
-  $("articleModalSummary").textContent = a.summary || "";
-  $("articleModalContent").innerHTML = paragraphs(a.content);
-  const link = $("articleModalLink");
-  if (a.sourceUrl) {
-    link.href = a.sourceUrl;
-    link.textContent = a.sourceLabel ? `Preberi izvirni vir: ${a.sourceLabel} ↗` : "Preberi izvirni vir ↗";
-    link.classList.remove("hidden");
-  } else {
-    link.classList.add("hidden");
-  }
-  showModal("articleModal");
+    (featured && featured.id === id ? featured : null) ||
+    null
+  );
 }
 
-/* ---------- Modali (prikažejo se takoj, brez animacij) ---------- */
+function paintArticle(a) {
+  if (!a || !$("articleModalTitle")) return;
+  document.title = a.title + " — Astronomski Utrinek";
+  if ($("articleModalImg")) {
+    $("articleModalImg").src = a.image || "assets/hero.jpg";
+    $("articleModalImg").alt = a.title;
+  }
+  if ($("articleModalBadge")) $("articleModalBadge").textContent = a.own ? "✍ Uredniška" : a.category;
+  if ($("articleModalDate")) $("articleModalDate").textContent = formatDate(a.date);
+  $("articleModalTitle").textContent = a.title;
+  if ($("articleModalSummary")) $("articleModalSummary").textContent = a.summary || "";
+  if ($("articleModalContent")) $("articleModalContent").innerHTML = paragraphs(a.content);
+  const link = $("articleModalLink");
+  if (link) {
+    if (a.sourceUrl) {
+      link.href = a.sourceUrl;
+      link.textContent = a.sourceLabel ? `Vir: ${a.sourceLabel}` : "Vir";
+      link.classList.remove("hidden");
+    } else {
+      link.classList.add("hidden");
+    }
+  }
+}
+
+function openArticle(id) {
+  const a = findArticle(id);
+  if (!a) return;
+  rememberOpen(a);
+  if (PAGE === "article") {
+    paintArticle(a);
+    window.scrollTo(0, 0);
+    return;
+  }
+  navigate(articleUrl(id));
+}
+
+async function renderArticlePage() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
+  const cached = recalledOpen();
+  if (cached && (!id || cached.id === id)) paintArticle(cached);
+  await Promise.all([loadFeatured(), loadApiNews(), syncFromCloud()]);
+  const a = (id && findArticle(id)) || (cached && findArticle(cached.id)) || cached;
+  if (a) paintArticle(a);
+  else if ($("articleModalTitle")) {
+    $("articleModalTitle").textContent = "Članka ni mogoče najti";
+    if ($("articleModalSummary")) {
+      $("articleModalSummary").textContent = "Vrni se k novicam in izberi drugo zgodbo.";
+    }
+  }
+}
+
 function showModal(id) {
   const el = $(id);
+  if (!el) return;
   el.classList.remove("hidden");
   el.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
 }
 function hideModal(id) {
   const el = $(id);
+  if (!el) return;
   el.classList.add("hidden");
   el.setAttribute("aria-hidden", "true");
-  document.body.style.overflow = "";
 }
-
-document.addEventListener("click", (e) => {
-  const closer = e.target.closest("[data-close]");
-  if (closer) hideModal(closer.dataset.close);
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "Escape") return;
-  ["articleModal", "loginModal", "adminPanel"].forEach((id) => {
-    if (!$(id).classList.contains("hidden")) hideModal(id);
-  });
-});
 
 /* ---------- Skriti sprožilec: 10 tapov, brez povratne informacije ---------- */
 let tapCount = 0;
@@ -417,6 +457,7 @@ let lastTapAt = 0;
 
 function initSecretTrigger() {
   const trigger = $("secretTrigger");
+  if (!trigger) return;
   trigger.addEventListener("pointerdown", (e) => {
     e.preventDefault(); // brez kakršnekoli animacije ali označevanja
     const now = Date.now();
@@ -425,10 +466,11 @@ function initSecretTrigger() {
     tapCount += 1;
     if (tapCount >= TRIGGER_TAPS) {
       tapCount = 0;
-      if (isAdmin()) openAdmin();
-      else {
-        showModal("loginModal");
-        $("adminCode").focus();
+      if (PAGE === "admin") {
+        if (isAdmin()) openAdmin();
+        else if ($("adminCode")) $("adminCode").focus();
+      } else {
+        navigate("admin.html");
       }
     }
   });
@@ -442,16 +484,17 @@ function isAdmin() {
 function initLogin() {
   const codeInput = $("adminCode");
   const err = $("loginError");
+  if (!codeInput || !$("submitCode")) return;
 
   const tryLogin = () => {
     if (codeInput.value.trim() === ADMIN_CODE) {
       sessionStorage.setItem(SESSION_KEY, "1");
       codeInput.value = "";
-      err.classList.add("hidden");
+      if (err) err.classList.add("hidden");
       hideModal("loginModal");
       openAdmin();
     } else {
-      err.classList.remove("hidden");
+      if (err) err.classList.remove("hidden");
       codeInput.select();
     }
   };
@@ -540,15 +583,17 @@ async function deleteFromCloud(id) {
 /* ---------- Skrbniški meni: pisanje in upravljanje člankov ---------- */
 function openAdmin() {
   editingId = null;
+  hideModal("loginModal");
+  showModal("adminPanel");
   resetForm();
   renderAdminList();
-  showModal("adminPanel");
   setCloudStatus(cloudStatus);
-  $("fTitle").focus();
+  if ($("fTitle")) $("fTitle").focus();
 }
 
 function renderAdminList() {
   const ul = $("adminList");
+  if (!ul) return;
   const sorted = [...ownArticles].sort((a, b) => (a.date < b.date ? 1 : -1));
   ul.innerHTML = sorted
     .map(
@@ -563,7 +608,7 @@ function renderAdminList() {
       </li>`
     )
     .join("");
-  $("adminListEmpty").classList.toggle("hidden", sorted.length > 0);
+  if ($("adminListEmpty")) $("adminListEmpty").classList.toggle("hidden", sorted.length > 0);
 
   ul.querySelectorAll(".admin-list-item").forEach((li) => {
     li.addEventListener("click", (e) => {
@@ -589,23 +634,33 @@ function loadIntoForm(id) {
 
 function resetForm() {
   editingId = null;
-  $("formTitle").textContent = "Nova novica";
-  $("fTitle").value = "";
-  $("fCategory").value = "Vesolje";
-  $("fImage").value = "";
-  $("fSummary").value = "";
-  $("fContent").value = "";
+  if ($("formTitle")) $("formTitle").textContent = "Nova novica";
+  if ($("fTitle")) $("fTitle").value = "";
+  if ($("fCategory")) $("fCategory").value = "Vesolje";
+  if ($("fImage")) $("fImage").value = "";
+  if ($("fSummary")) $("fSummary").value = "";
+  if ($("fContent")) $("fContent").value = "";
   renderAdminList();
 }
 
 function initAdmin() {
-  $("newArticle").addEventListener("click", resetForm);
-  $("resetForm").addEventListener("click", resetForm);
-  $("adminClose").addEventListener("click", () => hideModal("adminPanel"));
-  $("adminLogout").addEventListener("click", () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    hideModal("adminPanel");
-  });
+  if (!$("articleForm")) return;
+  if ($("newArticle")) $("newArticle").addEventListener("click", resetForm);
+  if ($("resetForm")) $("resetForm").addEventListener("click", resetForm);
+  if ($("adminClose")) {
+    $("adminClose").addEventListener("click", (e) => {
+      e.preventDefault();
+      navigate("index.html");
+    });
+  }
+  if ($("adminLogout")) {
+    $("adminLogout").addEventListener("click", () => {
+      sessionStorage.removeItem(SESSION_KEY);
+      hideModal("adminPanel");
+      showModal("loginModal");
+      if ($("adminCode")) $("adminCode").focus();
+    });
+  }
 
   $("articleForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -659,6 +714,7 @@ function initAdmin() {
 
 /* ---------- Filtri in iskanje ---------- */
 function initFilters() {
+  if (!$("chips") || !$("searchInput")) return;
   $("chips").addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
     if (!chip) return;
@@ -684,17 +740,37 @@ async function init() {
   buildStarfield();
   initChrome();
   initSecretTrigger();
-  initLogin();
-  initAdmin();
+
+  if (PAGE === "article") {
+    await renderArticlePage();
+    initReveal();
+    return;
+  }
+
+  if (PAGE === "admin") {
+    initLogin();
+    initAdmin();
+    await syncFromCloud();
+    if (isAdmin()) openAdmin();
+    else {
+      showModal("loginModal");
+      hideModal("adminPanel");
+    }
+    return;
+  }
+
+  if (PAGE === "about") {
+    initReveal();
+    return;
+  }
+
   initFilters();
   renderFeed();
-  fillTicker();
   initReveal();
 
   await Promise.all([loadFeatured(), loadApiNews(), syncFromCloud()]);
   renderFeatured();
   renderFeed();
-  fillTicker();
 }
 
 init();

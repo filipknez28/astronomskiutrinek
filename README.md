@@ -9,11 +9,14 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
   se prikaže lokalna zbirka člankov.
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
   in polje za iskanje po naslovih in vsebini.
-- **Branje člankov** — klik na novico odpre celoten članek v pogovornem oknu.
+- **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
+  lahko mirno prelistaš. Ni overlaya in te ne odnese na tuj portal.
+- **O strani** — ločena stran (`o-strani.html`), ne razdelek na dnu domače.
+- **Novice** — arhiv na `novice.html`.
 - **Skriti skrbniški meni** — sproži se z desetimi hitrimi dotiki na besedilo
   »Vse pravice pridržane« na dnu strani (brez kakršnekoli animacije ali povratne
-  informacije). Odpre se poziv za vnos skrbniške kode (`123456789`); po pravilni kodi se
-  odpre skrbniški meni za pisanje, urejanje in brisanje člankov. Uredniški članki se
+  informacije). Odpre se **celostranska** prijava (`admin.html`); po kodi
+  (`123456789`) je uredništvo prav tako celostransko. Uredniški članki se
   shranijo lokalno v brskalnik in so takoj vidni na vrhu novice na strani.
 - **Firebase Realtime Database (testni način)** — če je nastavljen, so uredniški članki
   shranjeni v oblak in vidni vsem obiskovalcem (glej spodaj).
