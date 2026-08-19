@@ -5,7 +5,9 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
 ## Kaj stran omogoča
 
 - **Uredniške novice** — stran ne vleče tujega API-ja. Objavlja jih urednik
-  **Filip Knez** (profilna slika, byline, urejevalnik z slikami in povezavami).
+  **Filip Knez** (profilna slika, byline, urejevalnik z slikami, povezavami in izrezom).
+- **Komentarji in računi** — obiskovalci si naredijo profil ali se prijavijo z Google
+  (`prijava.html`). Google Auth in Analytics sta vklopljena v `firebase-config.js`.
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
   in polje za iskanje po naslovih in vsebini.
 - **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
@@ -79,11 +81,18 @@ npx serve .
 
 ## Struktura
 
-- `index.html` — struktura strani
-- `styles.css` — videz (temna vesoljska tema)
-- `app.js` — logika: viri novic, prikaz, skriti sprožilec, skrbniški meni
+- `index.html` — naslovnica
+- `novice.html` — arhiv
+- `o-strani.html` — o uredništvu
+- `clanek.html` — članek
+- `prijava.html` — profil / Google
+- `admin.html` — uredništvo
+- `robots.txt`, `sitemap.xml`, `site.webmanifest` — SEO
+- `analytics.js` — Google Analytics 4
+- `styles.css` — videz
+- `app.js` — logika strani
 - `firebase.js` — REST odjemalec za Firebase Realtime Database
-- `firebase-config.js` — tvoj URL baze (izpolni po navodilih zgoraj)
+- `firebase-config.js` — Firebase in Analytics konfiguracija
 - `assets/` — lokalne slike za začetne članke
 - `assets/aqw.png` — originalni logotip, prikazan v levem zgornjem kotu (temna podlaga se zlije s temno glavo)
 - `assets/logo-prosojen.png` — rezervna, prosojna verzija logotipa (shranjena za morebitno kasnejšo uporabo)

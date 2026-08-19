@@ -26,6 +26,121 @@ let editingId = null;
 const CATEGORIES = ["Vesolje", "Planeti", "Rakete", "Opazovanje", "Raziskave"];
 const OPEN_KEY = "astronomski-utrinek-open";
 const PAGE = (document.body && document.body.dataset.page) || "home";
+const SITE_URL = String(window.SITE_URL || "https://stronomskiutrinek.top").replace(/\/+$/, "");
+
+function absUrl(path) {
+  if (!path) return SITE_URL + "/assets/hero.jpg";
+  if (/^https?:\/\//i.test(path)) return path;
+  return SITE_URL + "/" + String(path).replace(/^\//, "");
+}
+
+function upsertMeta(key, content, attr) {
+  if (!content) return;
+  attr = attr || "name";
+  let el = document.head.querySelector("meta[" + attr + "=\"" + key + "\"]");
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute(attr, key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function upsertLink(rel, href) {
+  let el = document.head.querySelector("link[rel=\"" + rel + "\"]");
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", href);
+}
+
+function upsertJsonLd(id, data) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.id = id;
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
+
+function applySeo(opts) {
+  opts = opts || {};
+  if (opts.title) {
+    document.title = opts.title;
+    upsertMeta("og:title", opts.title, "property");
+    upsertMeta("twitter:title", opts.title);
+  }
+  if (opts.description) {
+    upsertMeta("description", opts.description);
+    upsertMeta("og:description", opts.description, "property");
+    upsertMeta("twitter:description", opts.description);
+  }
+  const img = absUrl(opts.image || "assets/hero.jpg");
+  upsertMeta("og:image", img, "property");
+  upsertMeta("twitter:image", img);
+  upsertMeta("og:url", SITE_URL + (opts.path || "/"), "property");
+  upsertMeta("og:type", opts.type || "website", "property");
+  upsertLink("canonical", SITE_URL + (opts.path || "/"));
+  if (opts.jsonLd) upsertJsonLd("jsonld-dynamic", opts.jsonLd);
+}
+
+function orgJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    name: "Astronomski Utrinek",
+    url: SITE_URL + "/",
+    logo: absUrl("assets/logo-clean.png"),
+    founder: { "@type": "Person", name: "Filip Knez" },
+    inLanguage: "sl"
+  };
+}
+
+function initPublicSeo() {
+  if (PAGE === "home") {
+    applySeo({
+      title: "Astronomski Utrinek — novice iz vesolja",
+      description: "Uredniške novice iz vesolja v slovenščini: odkritja, rakete, planeti in opazovanje nočnega neba.",
+      path: "/",
+      image: "assets/hero.jpg",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@graph": [
+          orgJsonLd(),
+          {
+            "@type": "WebSite",
+            name: "Astronomski Utrinek",
+            url: SITE_URL + "/",
+            inLanguage: "sl",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: SITE_URL + "/novice?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    });
+  } else if (PAGE === "news") {
+    applySeo({
+      title: "Novice — Astronomski Utrinek",
+      description: "Arhiv uredniških astronomskih novic v slovenščini.",
+      path: "/novice",
+      image: "assets/hero.jpg"
+    });
+  } else if (PAGE === "about") {
+    applySeo({
+      title: "O strani — Astronomski Utrinek",
+      description: "O uredništvu Astronomski Utrinek. Piše Filip Knez.",
+      path: "/o-strani",
+      image: "assets/filip-knez.jpg"
+    });
+  }
+}
 
 /* ---------- Pripomočki ---------- */
 const $ = (id) => document.getElementById(id);
@@ -357,7 +472,25 @@ function findArticle(id) {
 
 function paintArticle(a) {
   if (!a || !$("articleModalTitle")) return;
-  document.title = a.title + " — Astronomski Utrinek";
+  applySeo({
+    title: a.title + " — Astronomski Utrinek",
+    description: String(a.summary || a.title).slice(0, 160),
+    path: "/clanek?id=" + encodeURIComponent(a.id),
+    image: a.image || "assets/hero.jpg",
+    type: "article",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      headline: a.title,
+      description: a.summary || a.title,
+      image: [absUrl(a.image || "assets/hero.jpg")],
+      datePublished: a.date,
+      author: { "@type": "Person", name: authorOf(a) },
+      publisher: orgJsonLd(),
+      mainEntityOfPage: SITE_URL + "/clanek?id=" + encodeURIComponent(a.id),
+      inLanguage: "sl"
+    }
+  });
   if ($("articleModalImg")) {
     $("articleModalImg").src = a.image || "assets/hero.jpg";
     $("articleModalImg").alt = a.title;
@@ -842,6 +975,13 @@ function initAdmin() {
 /* ---------- Filtri in iskanje ---------- */
 function initFilters() {
   if (!$("chips") || !$("searchInput")) return;
+  try {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) {
+      $("searchInput").value = q;
+      searchTerm = q.trim().toLowerCase();
+    }
+  } catch (e) { /* ignore */ }
   $("chips").addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
     if (!chip) return;

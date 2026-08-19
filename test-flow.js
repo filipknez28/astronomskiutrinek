@@ -104,6 +104,16 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("firebase-config.js vsebuje URL prave baze",
     fbConfig.includes("astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app") &&
     !fbConfig.includes("VAS-PROJEKT"));
+  check("firebase-config.js ima Google apiKey in Analytics",
+    fbConfig.includes("AIzaSyDWbGOIuQWVIduOUoFYai9qi8N1zaqnL5s") &&
+    fbConfig.includes("G-MC6BYYG33W"));
+  check("robots.txt in sitemap obstajata",
+    fs.existsSync(path.join(__dirname, "robots.txt")) &&
+    fs.existsSync(path.join(__dirname, "sitemap.xml")) &&
+    fs.readFileSync(path.join(__dirname, "robots.txt"), "utf8").includes("stronomskiutrinek.top"));
+  check("Naslovnica ima SEO opis in canonical",
+    !!document.querySelector("meta[name='description']") &&
+    !!document.querySelector("link[rel='canonical']"));
   check("Na domači strani ni razdelka 'O strani'", !document.getElementById("o-strani"));
   check("Tekoči pas novic je odstranjen", !document.querySelector(".ticker") && !document.getElementById("tickerTrack"));
   check("Na domači strani ni overlaya članka", !document.getElementById("articleModal"));
