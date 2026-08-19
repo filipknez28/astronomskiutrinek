@@ -278,16 +278,59 @@ function initChrome() {
 function initMobileNav() {
   const header = document.querySelector(".site-header");
   const btn = document.querySelector(".nav-toggle");
-  if (!header || !btn) return;
+  const nav = document.getElementById("mainNav");
+  if (!header || !btn || !nav) return;
+
+  const home = header.querySelector(".header-inner");
+  let scrim = document.querySelector(".nav-scrim");
+  if (!scrim) {
+    scrim = document.createElement("button");
+    scrim.type = "button";
+    scrim.className = "nav-scrim";
+    scrim.setAttribute("aria-label", "Zapri meni");
+    document.body.appendChild(scrim);
+  }
+
+  const isMobile = () => {
+    try {
+      return !!(window.matchMedia && window.matchMedia("(max-width: 860px)").matches);
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const placeNav = () => {
+    if (isMobile()) {
+      if (nav.parentElement !== document.body) document.body.appendChild(nav);
+    } else if (home && nav.parentElement !== home) {
+      home.appendChild(nav);
+    }
+  };
+
   const setOpen = (open) => {
+    open = !!open && isMobile();
     header.classList.toggle("nav-open", open);
+    nav.classList.toggle("is-open", open);
     document.body.classList.toggle("nav-lock", open);
+    scrim.classList.toggle("is-on", open);
     btn.setAttribute("aria-expanded", open ? "true" : "false");
     btn.setAttribute("aria-label", open ? "Zapri meni" : "Odpri meni");
   };
-  btn.addEventListener("click", () => setOpen(!header.classList.contains("nav-open")));
-  header.addEventListener("click", (e) => {
-    if (e.target.closest(".main-nav a")) setOpen(false);
+
+  placeNav();
+  window.addEventListener("resize", () => {
+    placeNav();
+    if (!isMobile()) setOpen(false);
+  });
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!header.classList.contains("nav-open"));
+  });
+  scrim.addEventListener("click", () => setOpen(false));
+  nav.addEventListener("click", (e) => {
+    if (e.target.closest("a")) setOpen(false);
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") setOpen(false);
