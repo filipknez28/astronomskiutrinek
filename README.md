@@ -34,6 +34,9 @@ Realtime Database v testnem načinu postanejo vidni vsem obiskovalcem strani.
 6. Znova naloži stran — v skrbniškem meniju se pokaže status:
    **»☁ Oblačna shramba (Firebase): povezano«**.
 
+✅ **Trenutno nastavljena baza:**
+`https://astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app`
+
 Članki so shranjeni v bazi pod potjo `/articles/{id}`. Ni potreben noben API ključ —
 stran uporablja REST API brez SDK-ja (`firebase.js`).
 

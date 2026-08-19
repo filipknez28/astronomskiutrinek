@@ -61,6 +61,12 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Favicon uporablja assets/favicon-32.png",
     !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
 
+  // 1c. Firebase konfiguracija vsebuje pravi URL baze
+  const fbConfig = fs.readFileSync(path.join(__dirname, "firebase-config.js"), "utf8");
+  check("firebase-config.js vsebuje URL prave baze",
+    fbConfig.includes("astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app") &&
+    !fbConfig.includes("VAS-PROJEKT"));
+
   // 2. Sprožilec: 9 tapov -> nič, 10. tap -> prijavno okno
   const trigger = document.getElementById("secretTrigger");
   check("Sprožilec je zdaj na vrstici 'Vse pravice pridržane'",
