@@ -63,10 +63,10 @@ img { max-width: 100%; display: block; }
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(5, 7, 15, 0.72);
+  background: rgba(248, 250, 255, 0.94);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.10);
 }
 .header-inner {
   display: flex;
@@ -80,27 +80,25 @@ img { max-width: 100%; display: block; }
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: var(--text);
+  color: #0e1226;
   font-family: var(--font-display);
   font-size: 1.15rem;
   letter-spacing: 0.01em;
 }
-/* Širok vodoraven logotip (s prosojnim ozadjem) — na svetli kartici, da je viden na temni glavi */
+/* Širok vodoraven logotip (prosojno ozadje) — direktno na svetli glavi, brez podlage */
 .brand-mark {
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 34px;
+  height: 32px;
   width: auto;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 10px;
-  padding: 5px 12px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: none;
+  padding: 0;
 }
 .brand-logo {
-  height: 24px;
+  height: 32px;
   width: auto;
-  max-width: min(220px, 52vw);
+  max-width: min(260px, 60vw);
   object-fit: contain;
   display: block;
 }
@@ -120,7 +118,6 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 0 22px rgba(123, 140, 255, 0.45);
   display: inline-grid;
   place-items: center;
-  padding: 0;
 }
 .brand-mark.is-fallback .brand-emoji {
   display: block;
@@ -130,22 +127,32 @@ img { max-width: 100%; display: block; }
   line-height: 1;
 }
 
-/* Manjša različica logotipa v nogi strani */
-.footer-brand .brand-mark { height: 28px; padding: 4px 9px; border-radius: 8px; }
-.footer-brand .brand-logo { height: 19px; max-width: 150px; }
-.footer-brand .brand-mark.is-fallback { width: 30px; height: 30px; padding: 0; }
-.footer-brand .brand-mark.is-fallback .brand-emoji { font-size: 0.85rem; }
+/* Ikona ✦ v nogi strani (temna noga → prelivni znak brez slike) */
+.footer-brand .brand-mark-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #06101f;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: 0 0 22px rgba(123, 140, 255, 0.45);
+}
 .brand-text strong { color: var(--accent-2); font-weight: 700; }
 .main-nav { display: flex; gap: 26px; }
 .main-nav a {
-  color: var(--muted);
+  color: #4a5370;
   text-decoration: none;
   font-weight: 500;
   font-size: 0.95rem;
   padding: 6px 2px;
   border-bottom: 2px solid transparent;
 }
-.main-nav a:hover { color: var(--text); border-bottom-color: var(--accent); }
+.main-nav a:hover { color: #10142a; border-bottom-color: var(--accent); }
 
 /* ===== Hero ===== */
 .hero { position: relative; z-index: 1; padding: 72px 0 64px; }
