@@ -37,3 +37,4 @@ npx serve .
 - `styles.css` — videz (temna vesoljska tema)
 - `app.js` — logika: viri novic, prikaz, skriti sprožilec, skrbniški meni
 - `assets/` — lokalne slike za začetne članke
+- `assets/logo.png` — logotip v levem zgornjem kotu (če datoteka manjka, stran samodejno prikaže rezervni simbol ✦)

@@ -86,15 +86,38 @@ img { max-width: 100%; display: block; }
   letter-spacing: 0.01em;
 }
 .brand-mark {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
   border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff; /* bela podlaga pod logotipom */
+  border: 1px solid var(--border);
+  box-shadow: 0 0 20px rgba(123, 140, 255, 0.25);
+}
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+  display: block;
+}
+.brand-emoji { display: none; }
+/* Rezerva: če slika logotipa manjka, se pokaže ✦ na prelivni podlagi */
+.brand-mark.is-fallback {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  box-shadow: 0 0 22px rgba(123, 140, 255, 0.45);
+}
+.brand-mark.is-fallback .brand-emoji {
+  display: block;
   color: #06101f;
   font-weight: 700;
-  box-shadow: 0 0 22px rgba(123, 140, 255, 0.45);
+  font-size: 1rem;
+  line-height: 1;
 }
 .brand-text strong { color: var(--accent-2); font-weight: 700; }
 .main-nav { display: flex; gap: 26px; }
