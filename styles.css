@@ -139,10 +139,21 @@ img { max-width: 100%; display: block; }
   place-items: center;
 }
 .brand-mark.is-fallback .brand-emoji {
-  display: block;
+  display: grid;
+  place-items: center;
   color: var(--accent);
-  font-size: 0.9rem;
-  line-height: 1;
+}
+.brand-mark.is-fallback .brand-emoji .ico {
+  width: 18px;
+  height: 18px;
+}
+
+.ico {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.18em;
+  flex-shrink: 0;
 }
 .brand-text strong { font-weight: 400; font-style: normal; }
 
@@ -337,7 +348,9 @@ body.nav-lock { overflow: hidden; }
 
 /* ===== Značke ===== */
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -348,6 +361,7 @@ body.nav-lock { overflow: hidden; }
   background: none;
   color: var(--accent);
 }
+.badge .ico { width: 13px; height: 13px; }
 .badge-live { color: var(--accent); }
 .live-dot { display: none; }
 .badge-gold { color: var(--accent); }
@@ -389,10 +403,10 @@ body.nav-lock { overflow: hidden; }
 
 .search-input {
   width: min(280px, 100%);
-  background: var(--bg-elev);
+  background: var(--bg-elev) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa6bd' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='5.2'/%3E%3Cpath d='m15.2 15.2 4 4'/%3E%3C/svg%3E") no-repeat 14px 50% / 16px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 11px 18px;
+  padding: 11px 18px 11px 40px;
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 0.92rem;
@@ -409,6 +423,9 @@ body.nav-lock { overflow: hidden; }
   margin-bottom: 40px;
 }
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--line);
   background: var(--bg-elev);
   color: var(--muted);
@@ -422,6 +439,7 @@ body.nav-lock { overflow: hidden; }
   cursor: pointer;
   transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
+.chip .ico { width: 15px; height: 15px; }
 .chip:hover { color: var(--ink); border-color: var(--line-strong); }
 .chip.is-active {
   color: #061018;
@@ -559,6 +577,13 @@ body.nav-lock { overflow: hidden; }
 .news-card:hover .read-more { color: var(--accent); transform: none; }
 
 .feed-status { text-align: center; color: var(--muted); padding: 40px 0; }
+.empty-art {
+  width: min(280px, 70vw);
+  height: auto;
+  margin: 0 auto 18px;
+  color: var(--accent);
+  display: block;
+}
 .feed-status .btn { margin-top: 14px; }
 
 /* ===== O strani — papirnata stran ===== */
@@ -611,11 +636,36 @@ body.nav-lock { overflow: hidden; }
 }
 .about-list { list-style: none; display: grid; gap: 16px; }
 .about-list li {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  align-items: start;
   color: var(--paper-muted);
   font-size: 0.98rem;
   padding: 0 0 16px;
-  border-bottom: 1px solid rgba(22, 21, 19, 0.1);
+  border-bottom: 1px solid var(--line);
 }
+.about-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: rgba(94, 200, 255, 0.06);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+.about-ico .ico { width: 20px; height: 20px; }
+.about-deco {
+  position: absolute;
+  right: -40px;
+  top: 40px;
+  width: min(280px, 40vw);
+  color: var(--accent);
+  opacity: 0.16;
+  pointer-events: none;
+}
+.about-page { position: relative; }
 .about-list li:last-child { border-bottom: 0; padding-bottom: 0; }
 .about-list li::before { content: none; }
 .about-list strong { color: var(--paper-ink); font-weight: 600; }
@@ -846,7 +896,15 @@ select.text-input { appearance: none; }
 .admin-header .modal-sub { margin-bottom: 0; }
 .admin-header-actions { display: flex; gap: 10px; }
 
-.admin-cloud-status { font-size: 0.78rem; color: var(--paper-muted); margin-top: 6px; }
+.admin-cloud-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--paper-muted);
+  margin-top: 6px;
+}
+.admin-cloud-status .ico { width: 16px; height: 16px; margin-top: 1px; flex-shrink: 0; }
 .admin-cloud-status.is-online { color: #3d6b4f; }
 .admin-cloud-status.is-offline { color: var(--danger); }
 
@@ -887,13 +945,16 @@ select.text-input { appearance: none; }
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 0;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--danger);
   font-size: 0.9rem;
   cursor: pointer;
+  display: grid;
+  place-items: center;
 }
+.admin-item-delete .ico { width: 16px; height: 16px; }
 .admin-item-delete:hover { border-color: rgba(180, 35, 42, 0.4); }
 .admin-empty { color: var(--paper-muted); font-size: 0.9rem; }
 
@@ -1027,6 +1088,7 @@ select.text-input { appearance: none; }
   .news-card:first-child { grid-column: auto; }
   .container { padding: 0 20px; }
   .article-body { padding: 24px 22px 32px; }
+  .about-deco { display: none; }
 }
 
 /* ===== Večstranski vmesnik ===== */
@@ -1051,7 +1113,7 @@ body[data-page="admin"] {
 .header-on-paper .main-nav a { color: var(--muted); }
 .header-on-paper .main-nav a:hover,
 .header-on-paper .main-nav a[aria-current="page"] { color: var(--ink); }
-.about-page { min-height: calc(100vh - 180px); padding-top: 72px; }
+.about-page { position: relative; min-height: calc(100vh - 180px); padding-top: 72px; }
 .about-page h1 {
   font-family: var(--font-display);
   font-size: clamp(2.6rem, 5vw, 4rem);
@@ -1250,6 +1312,9 @@ textarea#fContent {
   border-bottom: 1px solid var(--line);
 }
 .editor-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--line);
   background: #11151f;
   color: var(--ink);
@@ -1260,6 +1325,7 @@ textarea#fContent {
   border-radius: 10px;
   cursor: pointer;
 }
+.editor-toolbar button .ico { width: 15px; height: 15px; }
 .editor-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
 .editor-sep { width: 1px; background: var(--line); margin: 4px 4px; }
 .rich-editor {

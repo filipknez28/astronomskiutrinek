@@ -148,6 +148,21 @@ function initPublicSeo() {
 /* ---------- Pripomočki ---------- */
 const $ = (id) => document.getElementById(id);
 
+function ico(name, cls) {
+  return window.AUIcons && AUIcons.svg ? AUIcons.svg(name, cls) : "";
+}
+
+function catIconName(name) {
+  const n = String(name || "").toLowerCase();
+  if (n === "vse") return "grid";
+  if (/planet/.test(n)) return "planet";
+  if (/raket|izstrel/.test(n)) return "rocket";
+  if (/opaz/.test(n)) return "scope";
+  if (/razisk/.test(n)) return "atom";
+  if (/vesolj/.test(n)) return "orbit";
+  return "star";
+}
+
 function navigate(url) {
   if (typeof window.__navigate === "function") {
     window.__navigate(url);
@@ -231,7 +246,7 @@ function paintChips() {
   if (currentFilter !== "Vse" && !categories.includes(currentFilter)) currentFilter = "Vse";
   const all = ["Vse"].concat(categories);
   box.innerHTML = all.map((name) =>
-    `<button type="button" class="chip${name === currentFilter ? " is-active" : ""}" data-filter="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+    `<button type="button" class="chip${name === currentFilter ? " is-active" : ""}" data-filter="${escapeHtml(name)}">${ico(catIconName(name))}<span>${escapeHtml(name)}</span></button>`
   ).join("");
 }
 
@@ -253,7 +268,7 @@ function renderCatList() {
     <li class="cat-item" data-cat="${escapeHtml(c)}">
       <input class="text-input cat-item-name" value="${escapeHtml(c)}" aria-label="Ime kategorije" />
       <button type="button" class="admin-item-delete" data-cat-delete="${escapeHtml(c)}"
-              title="Izbriši kategorijo" aria-label="Izbriši kategorijo">🗑</button>
+              title="Izbriši kategorijo" aria-label="Izbriši kategorijo">${ico("trash")}</button>
     </li>`).join("");
 }
 
@@ -699,8 +714,9 @@ function renderFeed() {
     feed.innerHTML = "";
     if ($("feedStatus")) {
       $("feedStatus").classList.remove("hidden");
+      const art = window.AUIcons && AUIcons.decoEmpty ? AUIcons.decoEmpty() : "";
       $("feedStatus").innerHTML =
-        "Ni zadetkov za izbrani filter ali iskalni niz.";
+        art + "<p>Ni zadetkov za izbrani filter ali iskalni niz.</p>";
     }
     return;
   }
@@ -710,7 +726,7 @@ function renderFeed() {
     .map((a) => {
       const badges =
         `<span class="badge">${escapeHtml(a.category)}</span>` +
-        (a.own ? `<span class="badge badge-own">✍ Uredniška</span>` : "");
+        (a.own ? `<span class="badge badge-own">${ico("comet")} Uredniška</span>` : "");
       const focus = imageFocus(a);
       const img = a.image
         ? `<img src="${escapeHtml(a.image)}" alt="${escapeHtml(a.title)}" loading="lazy"
@@ -804,7 +820,11 @@ function paintArticle(a) {
     $("articleModalImg").alt = a.title;
     applyFocus($("articleModalImg"), a);
   }
-  if ($("articleModalBadge")) $("articleModalBadge").textContent = a.own ? "✍ Uredniška" : a.category;
+  if ($("articleModalBadge")) {
+    $("articleModalBadge").innerHTML = a.own
+      ? ico("comet") + " Uredniška"
+      : escapeHtml(a.category || "");
+  }
   if ($("articleModalDate")) $("articleModalDate").textContent = formatDate(a.date);
   $("articleModalTitle").textContent = a.title;
   if ($("articleModalSummary")) $("articleModalSummary").textContent = a.summary || "";
@@ -958,11 +978,11 @@ function setCloudStatus(state) {
   if (!el) return;
   el.classList.remove("is-online", "is-offline");
   const messages = {
-    online: "☁ Oblačna shramba (Firebase): povezano — članki so vidni vsem obiskovalcem.",
-    offline: "Oblačna shramba: ni na voljo — članki so shranjeni samo v tem brskalniku.",
-    "not-configured": "Oblačna shramba: ni nastavljena — članki se shranjujejo samo v tem brskalniku."
+    online: ico("cloudOn") + " Oblačna shramba (Firebase): povezano — članki so vidni vsem obiskovalcem.",
+    offline: ico("cloudOff") + " Oblačna shramba ni na voljo — članki so shranjeni samo v tem brskalniku.",
+    "not-configured": ico("cloud") + " Oblačna shramba ni nastavljena — članki se shranjujejo samo v tem brskalniku."
   };
-  el.textContent = messages[state] || messages["not-configured"];
+  el.innerHTML = messages[state] || messages["not-configured"];
   if (state === "online") el.classList.add("is-online");
   if (state === "offline") el.classList.add("is-offline");
 }
@@ -1040,7 +1060,7 @@ function renderAdminList() {
           <p>${escapeHtml(a.category)} • ${formatDate(a.date)}</p>
         </div>
         <button class="admin-item-delete" data-delete="${escapeHtml(a.id)}"
-                title="Izbriši članek" aria-label="Izbriši članek">🗑</button>
+                title="Izbriši članek" aria-label="Izbriši članek">${ico("trash")}</button>
       </li>`
     )
     .join("");

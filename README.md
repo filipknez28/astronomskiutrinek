@@ -1,4 +1,4 @@
-# ✦ Astronomski Utrinek
+# Astronomski Utrinek
 
 Sodobna spletna stran z astronomskimi novicami v slovenščini.
 
@@ -36,9 +36,9 @@ Realtime Database v testnem načinu postanejo vidni vsem obiskovalcem strani.
    `https://tvoj-projekt-default-rtdb.europe-west1.firebasedatabase.app`
 5. V datoteki **`firebase-config.js`** zamenjaj `VAS-PROJEKT` s svojim URL-jem baze.
 6. Znova naloži stran — v skrbniškem meniju se pokaže status:
-   **»☁ Oblačna shramba (Firebase): povezano«**.
+   **»Oblačna shramba (Firebase): povezano«**.
 
-✅ **Trenutno nastavljena baza:**
+**Trenutno nastavljena baza:**
 `https://astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app`
 
 Članki so shranjeni v bazi pod potjo `/articles/{id}`. Ni potreben noben API ključ —
@@ -58,7 +58,7 @@ podobna temu:
 }
 ```
 
-⚠️ **Pomembno:** testni način dovoljuje branje in pisanje *vsem brez prijave* in
+**Pomembno:** testni način dovoljuje branje in pisanje *vsem brez prijave* in
 samodejno poteče po približno 30 dneh (baza potem zavrne vse zahteve, dokler pravil
 ne posodobiš). Primeren je za razvoj in testiranje — za resno produkcijo bi dodali
 Firebase Authentication in strožja pravila. Podaljšaš ga tako, da v zavihku **Rules**
