@@ -108,6 +108,18 @@ window.FB = (function () {
     await req("site/profile", { method: "PUT", body: JSON.stringify(profile) });
   }
 
+  async function loadSiteCategories() {
+    const data = await req("site/categories");
+    if (!data) return null;
+    if (Array.isArray(data.items)) return data;
+    if (Array.isArray(data)) return { items: data, updatedAt: 0 };
+    return null;
+  }
+
+  async function saveSiteCategories(payload) {
+    await req("site/categories", { method: "PUT", body: JSON.stringify(payload) });
+  }
+
   return {
     isConfigured,
     loadArticles,
@@ -119,6 +131,8 @@ window.FB = (function () {
     loadUserByEmail,
     loadSiteProfile,
     saveSiteProfile,
+    loadSiteCategories,
+    saveSiteCategories,
     databaseURL: db
   };
 })();

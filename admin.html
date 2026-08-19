@@ -82,6 +82,18 @@
               </div>
               <ul id="adminList" class="admin-list"></ul>
               <p id="adminListEmpty" class="admin-empty hidden">Še ni objavljenih člankov. Ustvarite prvo novico!</p>
+
+              <div class="cat-admin">
+                <div class="admin-side-head">
+                  <h2>Kategorije</h2>
+                </div>
+                <p class="cat-admin-hint">Dodaj, preimenuj ali izbriši. Spremembe veljajo na vseh napravah.</p>
+                <ul id="catList" class="cat-list"></ul>
+                <form id="catForm" class="cat-form">
+                  <input id="catName" class="text-input" type="text" maxlength="40" placeholder="Nova kategorija" />
+                  <button class="btn btn-primary btn-small" type="submit">Dodaj</button>
+                </form>
+              </div>
             </aside>
 
             <section class="admin-form">
@@ -94,13 +106,7 @@
                   </div>
                   <div class="form-field">
                     <label for="fCategory">Kategorija</label>
-                    <select id="fCategory" class="text-input">
-                      <option>Vesolje</option>
-                      <option>Planeti</option>
-                      <option>Rakete</option>
-                      <option>Opazovanje</option>
-                      <option>Raziskave</option>
-                    </select>
+                    <select id="fCategory" class="text-input"></select>
                   </div>
                 </div>
                 <div class="form-field">

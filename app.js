@@ -23,7 +23,10 @@ let currentFilter = "Vse";
 let searchTerm = "";
 let editingId = null;
 
-const CATEGORIES = ["Vesolje", "Planeti", "Rakete", "Opazovanje", "Raziskave"];
+const CAT_KEY = "astronomski-utrinek-categories-v1";
+const DEFAULT_CATEGORIES = ["Vesolje", "Planeti", "Rakete", "Opazovanje", "Raziskave"];
+let categoriesUpdatedAt = 0;
+let categories = loadCategories();
 const OPEN_KEY = "astronomski-utrinek-open";
 const PAGE = (document.body && document.body.dataset.page) || "home";
 const SITE_URL = String(window.SITE_URL || "https://astronomskiutrinek.top").replace(/\/+$/, "");
@@ -180,6 +183,187 @@ function loadArticles() {
 }
 function saveArticles() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(ownArticles)); } catch (e) { /* ignore */ }
+}
+
+function sanitizeCatName(name) {
+  name = String(name || "").trim().replace(/\s+/g, " ");
+  if (!name || name.length > 40) return "";
+  if (/^(vse|urednišk\w*|uredništvo)$/i.test(name)) return "";
+  return name;
+}
+
+function normalizeCats(items) {
+  const out = [];
+  (Array.isArray(items) ? items : []).forEach((n) => {
+    const name = sanitizeCatName(n);
+    if (name && !out.some((x) => x.toLowerCase() === name.toLowerCase())) out.push(name);
+  });
+  return out.length ? out : DEFAULT_CATEGORIES.slice();
+}
+
+function loadCategories() {
+  try {
+    const raw = localStorage.getItem(CAT_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const items = Array.isArray(data) ? data : data && data.items;
+      if (Array.isArray(items) && items.length) {
+        categoriesUpdatedAt = Number((data && data.updatedAt) || 0);
+        return normalizeCats(items);
+      }
+    }
+  } catch (e) { /* ignore */ }
+  return DEFAULT_CATEGORIES.slice();
+}
+
+function saveCategoriesLocal() {
+  try {
+    localStorage.setItem(CAT_KEY, JSON.stringify({
+      items: categories,
+      updatedAt: categoriesUpdatedAt
+    }));
+  } catch (e) { /* ignore */ }
+}
+
+function paintChips() {
+  const box = $("chips");
+  if (!box) return;
+  if (currentFilter !== "Vse" && !categories.includes(currentFilter)) currentFilter = "Vse";
+  const all = ["Vse"].concat(categories);
+  box.innerHTML = all.map((name) =>
+    `<button type="button" class="chip${name === currentFilter ? " is-active" : ""}" data-filter="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+  ).join("");
+}
+
+function paintCategorySelect(selected) {
+  const sel = $("fCategory");
+  if (!sel) return;
+  const cur = selected || sel.value || categories[0] || "Vesolje";
+  const opts = categories.slice();
+  if (cur && !opts.includes(cur)) opts.unshift(cur);
+  sel.innerHTML = opts.map((c) =>
+    `<option value="${escapeHtml(c)}"${c === cur ? " selected" : ""}>${escapeHtml(c)}</option>`
+  ).join("");
+}
+
+function renderCatList() {
+  const ul = $("catList");
+  if (!ul) return;
+  ul.innerHTML = categories.map((c) => `
+    <li class="cat-item" data-cat="${escapeHtml(c)}">
+      <input class="text-input cat-item-name" value="${escapeHtml(c)}" aria-label="Ime kategorije" />
+      <button type="button" class="admin-item-delete" data-cat-delete="${escapeHtml(c)}"
+              title="Izbriši kategorijo" aria-label="Izbriši kategorijo">🗑</button>
+    </li>`).join("");
+}
+
+function paintCategoriesUI() {
+  paintChips();
+  paintCategorySelect();
+  renderCatList();
+}
+
+async function persistCategories(next, opts) {
+  opts = opts || {};
+  categories = normalizeCats(next);
+  categoriesUpdatedAt = Date.now();
+  saveCategoriesLocal();
+  if (opts.rename && opts.rename.from && opts.rename.to && opts.rename.from !== opts.rename.to) {
+    const from = opts.rename.from;
+    const to = opts.rename.to;
+    const touched = [];
+    ownArticles = ownArticles.map((a) => {
+      if (a.category !== from) return a;
+      const nextA = { ...a, category: to };
+      touched.push(nextA);
+      return nextA;
+    });
+    if (touched.length) {
+      saveArticles();
+      renderAdminList();
+      renderFeed();
+      for (let i = 0; i < touched.length; i++) await saveToCloud(touched[i]);
+    }
+  }
+  paintCategoriesUI();
+  if (fbReady() && FB.saveSiteCategories) {
+    try {
+      await FB.saveSiteCategories({ items: categories, updatedAt: categoriesUpdatedAt });
+    } catch (e) { /* offline */ }
+  }
+}
+
+async function syncCategoriesFromCloud() {
+  let remote = null;
+  if (fbReady() && FB.loadSiteCategories) {
+    try { remote = await FB.loadSiteCategories(); } catch (e) { /* offline */ }
+  }
+  const remoteItems = remote && (Array.isArray(remote.items) ? remote.items : remote);
+  const remoteTs = Number(remote && remote.updatedAt || 0);
+  if (Array.isArray(remoteItems) && remoteItems.length && remoteTs >= categoriesUpdatedAt) {
+    categories = normalizeCats(remoteItems);
+    categoriesUpdatedAt = remoteTs;
+    saveCategoriesLocal();
+  } else if (categoriesUpdatedAt && fbReady() && FB.saveSiteCategories) {
+    try {
+      await FB.saveSiteCategories({ items: categories, updatedAt: categoriesUpdatedAt });
+    } catch (e) { /* ignore */ }
+  }
+  paintCategoriesUI();
+}
+
+function initCatAdmin() {
+  const form = $("catForm");
+  if (form && !form.dataset.bound) {
+    form.dataset.bound = "1";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = $("catName");
+      const name = sanitizeCatName(input && input.value);
+      if (!name) return;
+      if (categories.some((c) => c.toLowerCase() === name.toLowerCase())) {
+        if (input) input.value = "";
+        return;
+      }
+      if (input) input.value = "";
+      await persistCategories(categories.concat(name));
+    });
+  }
+  if (document.body.dataset.catAdmin) return;
+  document.body.dataset.catAdmin = "1";
+  document.addEventListener("click", async (e) => {
+    const del = e.target.closest("[data-cat-delete]");
+    if (!del) return;
+    const name = del.getAttribute("data-cat-delete");
+    if (!name) return;
+    const used = ownArticles.filter((a) => a.category === name).length;
+    const msg = used
+      ? `Kategorija „${name}“ je na ${used} člankih. Izbrisati? Članki ostanejo, le filter izgine.`
+      : `Izbrisati kategorijo „${name}“?`;
+    if (!confirm(msg)) return;
+    if (categories.length <= 1) {
+      alert("Vsaj ena kategorija mora ostati.");
+      return;
+    }
+    await persistCategories(categories.filter((c) => c !== name));
+  });
+  document.addEventListener("change", async (e) => {
+    const input = e.target.closest(".cat-item-name");
+    if (!input) return;
+    const li = input.closest("[data-cat]");
+    const from = li && li.getAttribute("data-cat");
+    const to = sanitizeCatName(input.value);
+    if (!from || !to || to === from) {
+      input.value = from || "";
+      return;
+    }
+    if (categories.some((c) => c.toLowerCase() === to.toLowerCase() && c !== from)) {
+      alert("Ta kategorija že obstaja.");
+      input.value = from;
+      return;
+    }
+    await persistCategories(categories.map((c) => (c === from ? to : c)), { rename: { from, to } });
+  });
 }
 
 function formatDate(iso) {
@@ -497,8 +681,7 @@ function allArticles() {
 
 /* ---------- Prikaz novic ---------- */
 function matchesFilters(a) {
-  if (currentFilter === "Uredniške" && !a.own) return false;
-  if (CATEGORIES.includes(currentFilter) && a.category !== currentFilter) return false;
+  if (currentFilter !== "Vse" && a.category !== currentFilter) return false;
   if (searchTerm) {
     const hay = (a.title + " " + a.summary + " " + a.content).toLowerCase();
     if (!hay.includes(searchTerm)) return false;
@@ -877,7 +1060,7 @@ function loadIntoForm(id) {
   editingId = a.id;
   $("formTitle").textContent = "Urejanje: " + a.title;
   $("fTitle").value = a.title;
-  $("fCategory").value = CATEGORIES.includes(a.category) ? a.category : "Vesolje";
+  paintCategorySelect(a.category);
   $("fImage").value = a.image || "";
   if ($("fImageX")) $("fImageX").value = imageFocus(a).x;
   if ($("fImageY")) $("fImageY").value = imageFocus(a).y;
@@ -1028,7 +1211,9 @@ function initComposer() {
 function initAdmin() {
   if (!$("articleForm")) return;
   initComposer();
+  initCatAdmin();
   paintProfile();
+  paintCategoriesUI();
   if ($("newArticle")) $("newArticle").addEventListener("click", resetForm);
   if ($("resetForm")) $("resetForm").addEventListener("click", resetForm);
   if ($("adminClose")) {
@@ -1110,6 +1295,7 @@ function initAdmin() {
 /* ---------- Filtri in iskanje ---------- */
 function initFilters() {
   if (!$("chips") || !$("searchInput")) return;
+  paintChips();
   try {
     const q = new URLSearchParams(window.location.search).get("q");
     if (q) {
@@ -1333,6 +1519,8 @@ async function init() {
   buildStarfield();
   initChrome();
   initSecretTrigger();
+  await syncProfileFromCloud();
+  await syncCategoriesFromCloud();
 
   if (PAGE === "article") {
     await renderArticlePage();
@@ -1344,6 +1532,8 @@ async function init() {
     initLogin();
     initAdmin();
     await syncFromCloud();
+    await syncProfileFromCloud();
+    await syncCategoriesFromCloud();
     if (isAdmin()) openAdmin();
     else {
       showModal("loginModal");
@@ -1353,6 +1543,7 @@ async function init() {
   }
 
   if (PAGE === "about") {
+    paintPublicProfile();
     initReveal();
     return;
   }
@@ -1368,6 +1559,7 @@ async function init() {
 
   pickFeatured();
   await syncFromCloud();
+  await syncCategoriesFromCloud();
   pickFeatured();
   renderFeatured();
   renderFeed();
