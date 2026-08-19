@@ -11,10 +11,10 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
   in polje za iskanje po naslovih in vsebini.
 - **Branje člankov** — klik na novico odpre celoten članek v pogovornem oknu.
 - **Skriti skrbniški meni** — sproži se z desetimi hitrimi dotiki na besedilo
-  `Astronomski trinek 2620C` na dnu strani (brez kakršnekoli animacije ali povratne
-  informacije). Odpre se poziv za vnos skrbniške kode; po pravilni kodi se odpre
-  skrbniški meni za pisanje, urejanje in brisanje člankov. Uredniški članki se shranijo
-  lokalno v brskalnik in so takoj vidni na vrhu novice na strani.
+  »Vse pravice pridržane« na dnu strani (brez kakršnekoli animacije ali povratne
+  informacije). Odpre se poziv za vnos skrbniške kode (`123456789`); po pravilni kodi se
+  odpre skrbniški meni za pisanje, urejanje in brisanje člankov. Uredniški članki se
+  shranijo lokalno v brskalnik in so takoj vidni na vrhu novice na strani.
 
 ## Zagon
 

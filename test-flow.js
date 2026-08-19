@@ -41,6 +41,10 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
   // 2. Sprožilec: 9 tapov -> nič, 10. tap -> prijavno okno
   const trigger = document.getElementById("secretTrigger");
+  check("Sprožilec je zdaj na vrstici 'Vse pravice pridržane'",
+    trigger && trigger.textContent.includes("Vse pravice pridržane"));
+  check("Stari napis 'Astronomski trinek 2620C' je odstranjen",
+    !document.body.textContent.includes("2620C"));
   const tap = () => trigger.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
   for (let i = 0; i < 9; i++) tap();
   await tick(30);
