@@ -109,7 +109,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  height: 72px;
+  height: 88px;
 }
 .brand {
   display: flex;
@@ -126,13 +126,13 @@ img { max-width: 100%; display: block; }
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 36px;
+  height: 54px;
   width: auto;
 }
 .brand-logo {
-  height: 36px;
+  height: 54px;
   width: auto;
-  max-width: min(240px, 55vw);
+  max-width: min(380px, 62vw);
   object-fit: contain;
   display: block;
   transition: filter 0.25s ease;
@@ -837,6 +837,9 @@ select.text-input { appearance: none; }
   .hero-grid { grid-template-columns: 1fr; gap: 38px; }
   .about-grid { grid-template-columns: 1fr; gap: 30px; }
   .hero { padding: 48px 0 44px; }
+  .header-inner { height: 76px; }
+  .brand-mark { height: 46px; }
+  .brand-logo { height: 46px; max-width: min(280px, 58vw); }
 }
 
 /* ===== Zmanjšano gibanje ===== */
