@@ -246,7 +246,7 @@ function paintChips() {
   if (currentFilter !== "Vse" && !categories.includes(currentFilter)) currentFilter = "Vse";
   const all = ["Vse"].concat(categories);
   box.innerHTML = all.map((name) =>
-    `<button type="button" class="chip${name === currentFilter ? " is-active" : ""}" data-filter="${escapeHtml(name)}">${ico(catIconName(name))}<span>${escapeHtml(name)}</span></button>`
+    `<button type="button" class="chip${name === currentFilter ? " is-active" : ""}" data-filter="${escapeHtml(name)}">${escapeHtml(name)}</button>`
   ).join("");
 }
 
