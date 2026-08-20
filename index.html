@@ -51,42 +51,33 @@
       </button>
       <nav class="main-nav" id="mainNav" aria-label="Glavna navigacija">
         <a href="index.html" aria-current="page">Domov</a>
-        <a href="novice.html">Novice</a>
         <a href="o-strani.html">O strani</a>
       </nav>
     </div>
   </header>
 
-  <section class="hero" id="top">
-    <figure class="hero-card" id="featuredCard" tabindex="0" role="link" aria-label="Odpri izbrano novico">
-      <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
-      <div class="hero-card-shade"></div>
-      <figcaption class="hero-card-caption">
-        <div class="hero-caption-inner">
-          <span class="badge badge-live" id="featuredBadge">Izbor urednika</span>
-          <h1 id="featuredTitle">Zemlja ponoči iz vesolja</h1>
-          <p id="featuredMeta"></p>
-        </div>
-      </figcaption>
-    </figure>
-  </section>
-
-  <div class="edition-bar">
-    <div class="container edition-inner">
-      <p>Uredništvo · dnevnik vesolja</p>
-      <a href="novice.html">Celoten arhiv</a>
-    </div>
-  </div>
-
-  <main id="novice" class="news-section">
+  <main id="novice" class="news-section news-home">
     <div class="container">
+      <section class="hero" id="top">
+        <figure class="hero-card" id="featuredCard" tabindex="0" role="link" aria-label="Odpri izbrano novico">
+          <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
+          <div class="hero-card-shade"></div>
+          <figcaption class="hero-card-caption">
+            <div class="hero-caption-inner">
+              <span class="badge badge-live" id="featuredBadge">Izbor urednika</span>
+              <h1 id="featuredTitle">Zemlja ponoči iz vesolja</h1>
+              <p id="featuredMeta"></p>
+            </div>
+          </figcaption>
+        </figure>
+      </section>
+
       <div class="section-head reveal">
         <div>
-          <p class="section-kicker">Arhiv</p>
-          <h2>Najnovejše novice</h2>
+          <h2>Najnovejše</h2>
           <p class="section-sub" id="feedInfo">Nalagam novice&nbsp;…</p>
         </div>
-        <input type="search" id="searchInput" class="search-input" placeholder="Išči v arhivu" aria-label="Išči novice" />
+        <input type="search" id="searchInput" class="search-input" placeholder="Išči novice" aria-label="Išči novice" />
       </div>
 
       <div class="chips reveal" id="chips" role="tablist" aria-label="Filtri novic"></div>
@@ -104,13 +95,11 @@
       </div>
       <nav class="footer-nav" aria-label="Navigacija v nogi">
         <a href="index.html">Domov</a>
-        <a href="novice.html">Novice</a>
         <a href="o-strani.html">O strani</a>
       </nav>
     </div>
     <div class="container footer-bottom">
       <p id="secretTrigger" class="secret-trigger">© 2026 Astronomski Utrinek. Vse pravice pridržane.</p>
-      <p class="footer-issue">Številka 08 · Avgust 2026</p>
     </div>
   </footer>
 

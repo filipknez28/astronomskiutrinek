@@ -268,7 +268,7 @@ function renderCatList() {
     <li class="cat-item" data-cat="${escapeHtml(c)}">
       <input class="text-input cat-item-name" value="${escapeHtml(c)}" aria-label="Ime kategorije" />
       <button type="button" class="admin-item-delete" data-cat-delete="${escapeHtml(c)}"
-              title="Izbriši kategorijo" aria-label="Izbriši kategorijo">${ico("trash")}</button>
+              title="Izbriši kategorijo" aria-label="Izbriši kategorijo">${ico("remove")}</button>
     </li>`).join("");
 }
 
