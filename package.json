@@ -1,0 +1,19 @@
+{
+  "name": "astronomskiutrinek",
+  "version": "1.0.0",
+  "description": "Sodobna spletna stran z astronomskimi novicami v slovenščini.",
+  "main": "app.js",
+  "scripts": {
+    "start": "python3 -m http.server 8080 --bind 0.0.0.0",
+    "test": "node test-flow.js"
+  },
+  "keywords": [
+    "astronomija",
+    "novice",
+    "vesolje"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
