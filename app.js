@@ -97,7 +97,7 @@ function orgJsonLd() {
     "@type": "NewsMediaOrganization",
     name: "Astronomski Utrinek",
     url: SITE_URL + "/",
-    logo: absUrl("assets/logo-clean.png"),
+    logo: absUrl("assets/favicon-512.png"),
     founder: { "@type": "Person", name: "Filip Knez" },
     inLanguage: "sl"
   };
