@@ -602,7 +602,7 @@ body.nav-lock { overflow: hidden; }
   flex-wrap: wrap;
   padding-bottom: 24px;
 }
-.footer-brand { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 0.84rem; }
+.footer-brand { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.84rem; }
 .footer-brand strong {
   color: var(--ink);
   font-size: 0.95rem;
@@ -610,8 +610,8 @@ body.nav-lock { overflow: hidden; }
   letter-spacing: -0.02em;
 }
 .brand-mark-icon {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   background: transparent;
   overflow: hidden;
