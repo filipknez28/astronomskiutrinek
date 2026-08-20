@@ -90,13 +90,13 @@ img { max-width: 100%; display: block; }
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 34px;
+  height: 44px;
   width: auto;
 }
 .brand-logo {
-  height: 34px;
+  height: 44px;
   width: auto;
-  max-width: min(280px, 58vw);
+  max-width: min(340px, 68vw);
   object-fit: contain;
   display: block;
 }
@@ -881,8 +881,8 @@ select.text-input { appearance: none; }
 @media (max-width: 860px) {
   .about-grid { grid-template-columns: 1fr; gap: 36px; }
   .header-inner { height: 52px; }
-  .brand-mark { height: 30px; }
-  .brand-logo { height: 30px; max-width: calc(100vw - 110px); }
+  .brand-mark { height: 36px; }
+  .brand-logo { height: 36px; max-width: calc(100vw - 110px); }
   .hero-card { height: 78vh; min-height: 480px; }
   .news-home .hero-card { height: min(42vh, 340px); min-height: 220px; }
   .hero-card-caption { padding-bottom: 48px; }
@@ -1214,3 +1214,4 @@ textarea#fContent {
 .byline strong, .profile-name { display: block; font-size: 1.05rem; font-weight: 600; }
 .byline span { color: var(--muted); font-size: 0.85rem; }
 .card-byline { color: var(--muted) !important; font-size: 0.82rem !important; -webkit-line-clamp: 1 !important; }
+tant; }
