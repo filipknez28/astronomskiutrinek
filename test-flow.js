@@ -87,6 +87,12 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Novica iz Firebase oblaka je vidna na strani",
     document.getElementById("feed").textContent.includes("Novica iz oblaka"));
   check("Izpostavljena novica ima naslov", document.getElementById("featuredTitle").textContent.length > 5);
+  check("Števec novic ni več nalaganje",
+    !document.getElementById("feedInfo").textContent.includes("Nalagam"));
+  const aboutCopy = fs.readFileSync(path.join(__dirname, "o-strani.html"), "utf8");
+  check("O strani piše Nova luna in Altair",
+    aboutCopy.includes("Nova luna") && aboutCopy.includes("Altair") &&
+    !aboutCopy.includes("Nov luna") && !aboutCopy.includes("Atair"));
 
   // 1b. Logotip in favicon
   const headerLogo = document.querySelector(".site-header .brand-logo");
