@@ -673,18 +673,7 @@ async function fetchJson(url, ms = 9000) {
 }
 
 function pickFeatured() {
-  const list = allArticles();
-  featured = list[0] || {
-    id: "seed-featured",
-    title: "Astronomski Utrinek",
-    summary: "Uredništvo Filipa Kneza. Vesolje, zapisano v slovenščini.",
-    content: "Tu bodo tvoje zgodbe.",
-    image: "assets/hero.jpg",
-    category: "Vesolje",
-    date: new Date().toISOString().slice(0, 10),
-    own: true,
-    author: "Filip Knez"
-  };
+  featured = allArticles()[0] || null;
 }
 
 function allArticles() {
@@ -712,11 +701,15 @@ function renderFeed() {
 
   if (list.length === 0) {
     feed.innerHTML = "";
+    const total = allArticles().length;
+    const emptyMsg = total
+      ? "Ni zadetkov za izbrani filter ali iskalni niz."
+      : "Še ni objavljenih novic. Uredništvo jih bo kmalu dodalo.";
+    if (info) info.textContent = total ? emptyMsg : "uredništvo · Filip Knez";
     if ($("feedStatus")) {
       $("feedStatus").classList.remove("hidden");
       const art = window.AUIcons && AUIcons.decoEmpty ? AUIcons.decoEmpty() : "";
-      $("feedStatus").innerHTML =
-        art + "<p>Ni zadetkov za izbrani filter ali iskalni niz.</p>";
+      $("feedStatus").innerHTML = art + "<p>" + emptyMsg + "</p>";
     }
     return;
   }
@@ -771,7 +764,22 @@ function renderFeed() {
 }
 
 function renderFeatured() {
-  if (!featured || !$("featuredTitle")) return;
+  if (!$("featuredTitle")) return;
+  const card = $("featuredCard");
+  if (!featured) {
+    if ($("featuredImg")) $("featuredImg").src = "assets/hero.jpg";
+    $("featuredTitle").textContent = "Astronomski Utrinek";
+    if ($("featuredBadge")) $("featuredBadge").textContent = "Novice iz vesolja";
+    if ($("featuredMeta")) $("featuredMeta").textContent = "Uredništvo Filipa Kneza";
+    if (card) {
+      card.onclick = null;
+      card.onkeydown = null;
+      card.removeAttribute("tabindex");
+      card.removeAttribute("role");
+      card.setAttribute("aria-label", "Astronomski Utrinek");
+    }
+    return;
+  }
   $("featuredImg").src = featured.image || "assets/hero.jpg";
   applyFocus($("featuredImg"), featured);
   $("featuredTitle").textContent = featured.title;
@@ -779,7 +787,10 @@ function renderFeatured() {
   $("featuredMeta").textContent = featured.date
     ? formatDate(featured.date) + " · " + authorOf(featured)
     : authorOf(featured);
-  const card = $("featuredCard");
+  if (!card) return;
+  card.setAttribute("tabindex", "0");
+  card.setAttribute("role", "link");
+  card.setAttribute("aria-label", "Odpri izbrano novico");
   card.onclick = () => openArticle(featured.id);
   card.onkeydown = (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openArticle(featured.id); }
