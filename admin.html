@@ -160,8 +160,23 @@
                   </div>
                   <textarea id="fContent" class="sr-only" hidden aria-hidden="true" tabindex="-1" required></textarea>
                 </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="fStatus">Način objave</label>
+                    <select id="fStatus" class="text-input">
+                      <option value="published">Objavi takoj</option>
+                      <option value="scheduled">Načrtuj objavo</option>
+                      <option value="draft">Osnutek (nevidno)</option>
+                    </select>
+                  </div>
+                  <div class="form-field" id="schedWrap">
+                    <label for="fPublishAt">Datum in čas objave</label>
+                    <input id="fPublishAt" class="text-input" type="datetime-local" />
+                  </div>
+                </div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-ghost" id="resetForm">Razveljavi</button>
+                  <button type="button" class="btn btn-ghost" id="saveDraftBtn">Shrani osnutek</button>
                   <button type="submit" class="btn btn-primary">Shrani in objavi</button>
                 </div>
               </form>
@@ -185,6 +200,7 @@
     </div>
     <div class="container footer-bottom">
       <p id="secretTrigger" class="secret-trigger">© 2026 Astronomski Utrinek. Vse pravice pridržane.</p>
+      <a class="footer-support" href="mailto:filip.knez28@gmail.com">Podpora: filip.knez28@gmail.com</a>
     </div>
   </footer>
 

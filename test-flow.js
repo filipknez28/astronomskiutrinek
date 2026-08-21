@@ -125,20 +125,22 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Na domači strani ni overlaya članka", !document.getElementById("articleModal"));
   const aboutHtml = fs.readFileSync(path.join(__dirname, "o-strani.html"), "utf8");
   check("O strani je lastna stran", aboutHtml.includes("id=\"o-strani\"") && aboutHtml.includes("data-page=\"about\""));
+  check("Podporni e-poštni naslov je na dnu strani",
+    !!document.querySelector(".footer-support[href='mailto:filip.knez28@gmail.com']"));
 
-  // 2. Sprožilec: 9 tapov -> nič, 10. tap -> skrbniška stran
+  // 2. Sprožilec: 2 tapova -> nič, 3. tap -> skrbniška stran
   const trigger = document.getElementById("secretTrigger");
   check("Sprožilec je zdaj na vrstici 'Vse pravice pridržane'",
     trigger && trigger.textContent.includes("Vse pravice pridržane"));
   check("Stari napis 'Astronomski trinek 2620C' je odstranjen",
     !document.body.textContent.includes("2620C"));
   const tap = () => trigger.dispatchEvent(new home.MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
-  for (let i = 0; i < 9; i++) tap();
+  for (let i = 0; i < 2; i++) tap();
   await tick(30);
-  check("Po 9 tapih ostaneš na domači strani", nav.url === "");
+  check("Po 2 tapih ostaneš na domači strani", nav.url === "");
   tap();
   await tick(30);
-  check("Po 10 tapih gre na skrbniško stran", nav.url === "admin.html");
+  check("Po 3 tapih gre na skrbniško stran", nav.url === "admin.html");
 
   // 3–4. Prijava na lastni strani
   const adminWin = boot("admin.html", "http://localhost/admin.html", { FB, nav: { url: "" } });
@@ -165,6 +167,11 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Studio za izrez naslovne slike je v uredništvu",
     !!adminWin.document.getElementById("cropStudio") &&
     !!adminWin.document.getElementById("cropZoom"));
+  check("Admin ima gumb 'Shrani osnutek'",
+    !!adminWin.document.getElementById("saveDraftBtn"));
+  check("Admin ima način objave in datum za načrtovano objavo",
+    !!adminWin.document.getElementById("fStatus") &&
+    !!adminWin.document.getElementById("fPublishAt"));
 
   // 5. Ustvarjanje članka
   adminWin.document.getElementById("fTitle").value = "Testna novica iz admina";
@@ -251,6 +258,59 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Stran za prijavo obstaja", !!authWin.document.getElementById("loginForm"));
   check("Lahko ustvariš svoj profil", !!authWin.document.getElementById("registerForm"));
   check("Gumb za Google prijavo je tu", !!authWin.document.getElementById("googleBtn"));
+  check("V profilu lahko spremeniš ime",
+    !!authWin.document.getElementById("meNameInput") &&
+    !!authWin.document.getElementById("saveNameBtn"));
+
+  // 10b. Osnutki in načrtovane objave niso javno vidne
+  const draftWin = boot("admin.html", "http://localhost/admin.html", {
+    FB,
+    storage: { local: {}, session: { "astronomski-utrinek-admin": "1" } },
+    nav: { url: "" }
+  });
+  await tick(80);
+  draftWin.document.getElementById("fTitle").value = "Skrit osnutek";
+  draftWin.document.getElementById("fCategory").value = "Vesolje";
+  draftWin.document.getElementById("fSummary").value = "Osnutek.";
+  draftWin.document.getElementById("fContent").value = "Vsebina osnutka.";
+  draftWin.document.getElementById("saveDraftBtn").click();
+  await tick(40);
+  const draftStorage = dumpStorage(draftWin);
+  const draftSaved = JSON.parse(draftStorage.local["astronomski-utrinek-articles-v1"])
+    .find((a) => a.title === "Skrit osnutek");
+  check("Gumb 'Shrani osnutek' shrani kot osnutek", draftSaved && draftSaved.status === "draft");
+  const homeWithDraft = boot("index.html", "http://localhost/index.html", { FB, storage: draftStorage, nav: { url: "" } });
+  await tick(400);
+  check("Osnutek ni viden na javni strani",
+    !homeWithDraft.document.getElementById("feed").textContent.includes("Skrit osnutek"));
+
+  const schedWin = boot("admin.html", "http://localhost/admin.html", {
+    FB,
+    storage: draftStorage,
+    nav: { url: "" }
+  });
+  await tick(80);
+  schedWin.document.getElementById("fTitle").value = "Načrtovana novica";
+  schedWin.document.getElementById("fCategory").value = "Vesolje";
+  schedWin.document.getElementById("fSummary").value = "Načrtovana.";
+  schedWin.document.getElementById("fContent").value = "Vsebina načrtovane novice.";
+  schedWin.document.getElementById("fStatus").value = "scheduled";
+  const future = new Date(Date.now() + 7 * 864e5);
+  const p = (n) => String(n).padStart(2, "0");
+  schedWin.document.getElementById("fPublishAt").value =
+    `${future.getFullYear()}-${p(future.getMonth() + 1)}-${p(future.getDate())}T${p(future.getHours())}:${p(future.getMinutes())}`;
+  schedWin.document.getElementById("articleForm").dispatchEvent(
+    new schedWin.MouseEvent("submit", { bubbles: true, cancelable: true })
+  );
+  await tick(40);
+  const schedStorage = dumpStorage(schedWin);
+  const schedSaved = JSON.parse(schedStorage.local["astronomski-utrinek-articles-v1"])
+    .find((a) => a.title === "Načrtovana novica");
+  check("Načrtovana objava se shrani z datumom", schedSaved && schedSaved.status === "scheduled" && !!schedSaved.publishAt);
+  const homeWithSched = boot("index.html", "http://localhost/index.html", { FB, storage: schedStorage, nav: { url: "" } });
+  await tick(400);
+  check("Načrtovana objava ni viden na javni strani pred datumom",
+    !homeWithSched.document.getElementById("feed").textContent.includes("Načrtovana novica"));
 
   // 10. Sprožilec brez povratne informacije
   const before = trigger.getAttribute("style");

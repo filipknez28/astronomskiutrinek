@@ -4,7 +4,7 @@
 const LS_KEY = "astronomski-utrinek-articles-v1";
 const SESSION_KEY = "astronomski-utrinek-admin";
 const ADMIN_CODE = "1237";               // skrbniška koda
-const TRIGGER_TAPS = 10;                  // število tapov na skriti sprožilec
+const TRIGGER_TAPS = 3;                   // število tapov na skriti sprožilec
 const TAP_WINDOW_MS = 2500;               // max razmik med dvema tapoma
 
 /* Ni privzetih člankov — arhiv napolni uredništvo. */
@@ -673,7 +673,7 @@ async function fetchJson(url, ms = 9000) {
 }
 
 function pickFeatured() {
-  featured = allArticles()[0] || null;
+  featured = allArticles().find(isPublicVisible) || null;
 }
 
 function allArticles() {
@@ -684,6 +684,17 @@ function allArticles() {
 }
 
 /* ---------- Prikaz novic ---------- */
+// Osnutki in načrtovane objave (v prihodnosti) niso javno vidne.
+function isPublicVisible(a) {
+  if (!a) return false;
+  if (a.status === "draft") return false;
+  if (a.status === "scheduled") {
+    const t = new Date(a.publishAt || "").getTime();
+    if (!t || t > Date.now()) return false;
+    return true;
+  }
+  return true;
+}
 function matchesFilters(a) {
   if (currentFilter !== "Vse" && a.category !== currentFilter) return false;
   if (searchTerm) {
@@ -696,7 +707,7 @@ function matchesFilters(a) {
 function renderFeed() {
   const feed = $("feed");
   if (!feed) return;
-  const list = allArticles().filter(matchesFilters);
+  const list = allArticles().filter(isPublicVisible).filter(matchesFilters);
   const info = $("feedInfo");
 
   if (list.length === 0) {
@@ -918,7 +929,7 @@ function hideModal(id) {
   el.setAttribute("aria-hidden", "true");
 }
 
-/* ---------- Skriti sprožilec: 10 tapov, brez povratne informacije ---------- */
+/* ---------- Skriti sprožilec: 3 dotiki, brez povratne informacije ---------- */
 let tapCount = 0;
 let lastTapAt = 0;
 
@@ -1058,22 +1069,35 @@ function openAdmin() {
   if ($("fTitle")) $("fTitle").focus();
 }
 
+function statusMeta(a) {
+  if (!a) return { label: "", cls: "" };
+  if (a.status === "draft") return { label: "Osnutek", cls: "status-draft" };
+  if (a.status === "scheduled") {
+    const t = new Date(a.publishAt || "").getTime();
+    const future = !t || t > Date.now();
+    return { label: future ? "Načrtovano" : "Načrtovano (pripravljeno)", cls: "status-scheduled" };
+  }
+  return { label: "Objavljeno", cls: "status-published" };
+}
+
 function renderAdminList() {
   const ul = $("adminList");
   if (!ul) return;
   const sorted = [...ownArticles].sort((a, b) => (a.date < b.date ? 1 : -1));
   ul.innerHTML = sorted
-    .map(
-      (a) => `
+    .map((a) => {
+      const st = statusMeta(a);
+      const badge = st.label ? `<span class="admin-status ${st.cls}">${st.label}</span>` : "";
+      return `
       <li class="admin-list-item ${a.id === editingId ? "is-editing" : ""}" data-id="${escapeHtml(a.id)}">
         <div class="admin-item-text">
-          <h5>${escapeHtml(a.title)}</h5>
+          <h5>${escapeHtml(a.title)} ${badge}</h5>
           <p>${escapeHtml(a.category)} • ${formatDate(a.date)}</p>
         </div>
         <button class="admin-item-delete" data-delete="${escapeHtml(a.id)}"
                 title="Izbriši članek" aria-label="Izbriši članek">${ico("trash")}</button>
-      </li>`
-    )
+      </li>`;
+    })
     .join("");
   if ($("adminListEmpty")) $("adminListEmpty").classList.toggle("hidden", sorted.length > 0);
 
@@ -1083,6 +1107,21 @@ function renderAdminList() {
       loadIntoForm(li.dataset.id);
     });
   });
+}
+
+function toLocalInputValue(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function syncSchedWrap() {
+  const sel = $("fStatus");
+  const wrap = $("schedWrap");
+  if (!sel || !wrap) return;
+  wrap.classList.toggle("hidden", sel.value !== "scheduled");
 }
 
 function loadIntoForm(id) {
@@ -1099,6 +1138,14 @@ function loadIntoForm(id) {
   $("fSummary").value = a.summary || "";
   $("fContent").value = a.content || "";
   if (window.__rich) window.__rich.set(a.content || "");
+  const st = a.status || "published";
+  if ($("fStatus")) {
+    $("fStatus").value = st === "draft" ? "draft" : (st === "scheduled" ? "scheduled" : "published");
+    syncSchedWrap();
+  }
+  if ($("fPublishAt")) {
+    $("fPublishAt").value = toLocalInputValue(a.publishAt || "");
+  }
   updateCoverPreview(a.image || "", imageFocus(a));
   renderAdminList();
   $("fTitle").focus();
@@ -1116,6 +1163,8 @@ function resetForm() {
   if ($("fSummary")) $("fSummary").value = "";
   if ($("fContent")) $("fContent").value = "";
   if (window.__rich) window.__rich.set("");
+  if ($("fStatus")) { $("fStatus").value = "published"; syncSchedWrap(); }
+  if ($("fPublishAt")) $("fPublishAt").value = "";
   updateCoverPreview("");
   renderAdminList();
 }
@@ -1262,6 +1311,15 @@ function initAdmin() {
     });
   }
 
+  if ($("fStatus")) $("fStatus").addEventListener("change", syncSchedWrap);
+  if ($("saveDraftBtn")) {
+    $("saveDraftBtn").addEventListener("click", () => {
+      if ($("fStatus")) $("fStatus").value = "draft";
+      syncSchedWrap();
+      $("articleForm").requestSubmit();
+    });
+  }
+
   $("articleForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (window.__rich) {
@@ -1275,6 +1333,20 @@ function initAdmin() {
     const content = $("fContent").value.trim();
     if (!title || !summary || !content) return;
 
+    const status = ($("fStatus") && $("fStatus").value) || "published";
+    let publishAt = "";
+    if (status === "scheduled") {
+      publishAt = $("fPublishAt") && $("fPublishAt").value;
+      if (!publishAt) {
+        alert("Za načrtovano objavo izberi datum in čas objave.");
+        if ($("fPublishAt")) $("fPublishAt").focus();
+        return;
+      }
+      // normaliziraj na lokalni ISO (datetime-local vrne brez časovnega pasu)
+      const iso = new Date(publishAt.replace("T", "T") + ":00");
+      publishAt = isNaN(iso.getTime()) ? publishAt : iso.toISOString();
+    }
+
     const data = {
       title,
       summary,
@@ -1287,7 +1359,9 @@ function initAdmin() {
       date: new Date().toISOString().slice(0, 10),
       own: true,
       author: profile.name,
-      authorImage: profile.avatar
+      authorImage: profile.avatar,
+      status,
+      publishAt: status === "scheduled" ? publishAt : ""
     };
 
     let article;
@@ -1452,6 +1526,7 @@ function initAuthPage() {
     if (u) {
       if ($("meName")) $("meName").textContent = u.name;
       if ($("meEmail")) $("meEmail").textContent = u.email || "";
+      if ($("meNameInput")) $("meNameInput").value = u.name || "";
       if ($("meAvatar")) {
         $("meAvatar").src = u.avatar || "assets/filip-knez.jpg";
         $("meAvatar").classList.remove("hidden");
@@ -1539,6 +1614,18 @@ function initAuthPage() {
         showErr("");
         paint();
       } catch (err) { showErr(err.message); }
+    });
+  }
+  if ($("saveNameBtn") && $("meNameInput")) {
+    $("saveNameBtn").addEventListener("click", async () => {
+      try {
+        await AUAuth.updateName($("meNameInput").value);
+        showErr("");
+        paint();
+      } catch (err) { showErr(err.message); }
+    });
+    $("meNameInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); $("saveNameBtn").click(); }
     });
   }
   if ($("logoutBtn")) $("logoutBtn").addEventListener("click", () => { AUAuth.logout(); paint(); });
