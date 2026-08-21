@@ -108,6 +108,34 @@
     return current();
   }
 
+  async function updateName(name) {
+    const sess = current();
+    if (!sess) throw new Error("Nisi prijavljen.");
+    name = String(name || "").trim();
+    if (!name) throw new Error("Ime ne sme biti prazno.");
+    if (name.length > 40) throw new Error("Ime je predolgo (največ 40 znakov).");
+    const users = loadUsers();
+    const idx = users.findIndex((u) => u.id === sess.id || u.email === sess.email);
+    const next = { ...(idx >= 0 ? users[idx] : sess), name };
+    if (idx >= 0) users[idx] = next;
+    else users.push(next);
+    saveUsers(users);
+    setSession(next);
+    if (global.FB && FB.saveUser) {
+      try {
+        await FB.saveUser({
+          id: next.id,
+          name,
+          email: next.email,
+          avatar: next.avatar,
+          provider: next.provider || "local",
+          pass: next.pass || ""
+        });
+      } catch (e) { /* ignore */ }
+    }
+    return current();
+  }
+
   function logout() { setSession(null); }
 
   function googleReady() {
@@ -142,5 +170,5 @@
     return current();
   }
 
-  global.AUAuth = { current, register, login, logout, loginGoogle, googleReady, updateAvatar };
+  global.AUAuth = { current, register, login, logout, loginGoogle, googleReady, updateAvatar, updateName };
 })(window);

@@ -644,6 +644,14 @@ body.nav-lock { overflow: hidden; }
   font-size: 0.72rem;
 }
 .footer-issue { letter-spacing: 0; text-transform: none; font-size: 0.72rem; }
+.footer-support {
+  color: #8b8b92;
+  font-size: 0.72rem;
+  text-decoration: none;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.footer-support:hover { color: var(--ink); text-decoration: underline; }
 .secret-trigger {
   color: #6e6e73;
   font-size: 0.72rem;
@@ -848,6 +856,21 @@ select.text-input { appearance: none; }
 .admin-item-delete .ico { width: 16px; height: 16px; }
 .admin-item-delete:hover { background: rgba(255, 69, 58, 0.12); }
 .admin-empty { color: var(--muted); font-size: 0.9rem; }
+
+.admin-status {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: 2px;
+  margin-left: 6px;
+}
+.admin-status.status-draft { background: rgba(142, 142, 147, 0.16); color: #c7c7cc; }
+.admin-status.status-scheduled { background: rgba(255, 196, 0, 0.16); color: #ffd54d; }
+.admin-status.status-published { background: rgba(48, 209, 88, 0.16); color: #30d958; }
 
 .cat-admin {
   margin-top: 28px;
@@ -1216,6 +1239,14 @@ textarea#fContent {
 .about-profile { display: flex; gap: 16px; align-items: center; margin-bottom: 28px; }
 .about-profile img { width: 88px; height: 88px; }
 .about-profile h2 { font-size: 1.5rem; margin-bottom: 4px; font-weight: 600; }
+.profile-name-edit {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  max-width: 420px;
+}
+.profile-name-edit .text-input { flex: 1; }
 .byline { display: flex; align-items: center; gap: 12px; margin: 8px 0 20px; }
 .byline strong, .profile-name { display: block; font-size: 1.05rem; font-weight: 600; }
 .byline span { color: var(--muted); font-size: 0.85rem; }
