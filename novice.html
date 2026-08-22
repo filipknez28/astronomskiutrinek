@@ -3,24 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Astronomski Utrinek — novice iz vesolja</title>
-  <meta name="description" content="Uredniške novice iz vesolja v slovenščini: odkritja, rakete, planeti in opazovanje nočnega neba. Piše Filip Knez." />
+  <title>Novice — Astronomski Utrinek</title>
+  <meta name="description" content="Arhiv uredniških astronomskih novic v slovenščini — Astronomski Utrinek." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="author" content="Filip Knez" />
   <meta name="theme-color" content="#000000" />
-  <link rel="canonical" href="https://astronomskiutrinek.top/" />
-  <link rel="alternate" hreflang="sl" href="https://astronomskiutrinek.top/" />
+  <link rel="canonical" href="https://astronomskiutrinek.top/novice" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="sl_SI" />
   <meta property="og:site_name" content="Astronomski Utrinek" />
-  <meta property="og:title" content="Astronomski Utrinek — novice iz vesolja" />
-  <meta property="og:description" content="Uredniške novice iz vesolja v slovenščini. Odkritja, rakete, planeti in nočno nebo." />
-  <meta property="og:url" content="https://astronomskiutrinek.top/" />
+  <meta property="og:title" content="Novice — Astronomski Utrinek" />
+  <meta property="og:description" content="Arhiv uredniških astronomskih novic v slovenščini." />
+  <meta property="og:url" content="https://astronomskiutrinek.top/novice" />
   <meta property="og:image" content="https://astronomskiutrinek.top/assets/hero.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Astronomski Utrinek — novice iz vesolja" />
-  <meta name="twitter:description" content="Uredniške novice iz vesolja v slovenščini." />
-  <meta name="twitter:image" content="https://astronomskiutrinek.top/assets/hero.jpg" />
   <link rel="icon" href="favicon.ico" sizes="48x48" />
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="assets/favicon-48.png" sizes="48x48" type="image/png" />
@@ -33,11 +29,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"NewsMediaOrganization","name":"Astronomski Utrinek","url":"https://astronomskiutrinek.top/","logo":"https://astronomskiutrinek.top/assets/favicon-512.png","founder":{"@type":"Person","name":"Filip Knez"},"inLanguage":"sl"}
-  </script>
 </head>
-<body data-page="home">
+<body data-page="news">
   <div id="starfield" class="starfield" aria-hidden="true"></div>
 
   <header class="site-header">
@@ -54,34 +47,21 @@
         <span></span><span></span><span></span>
       </button>
       <nav class="main-nav" id="mainNav" aria-label="Glavna navigacija">
-        <a href="index.html" aria-current="page">Domov</a>
+        <a href="index.html">Domov</a>
         <a href="o-strani.html">O strani</a>
       </nav>
     </div>
   </header>
 
-  <main id="novice" class="news-section news-home">
+  <main class="news-section news-section-page">
     <div class="container">
-      <section class="hero" id="top">
-        <figure class="hero-card" id="featuredCard" tabindex="0" role="link" aria-label="Odpri izbrano novico">
-          <img id="featuredImg" src="assets/hero.jpg" alt="Slika dneva" />
-          <div class="hero-card-shade"></div>
-          <figcaption class="hero-card-caption">
-            <div class="hero-caption-inner">
-              <span class="badge badge-live" id="featuredBadge">Izbor urednika</span>
-              <h1 id="featuredTitle">Zemlja ponoči iz vesolja</h1>
-              <p id="featuredMeta"></p>
-            </div>
-          </figcaption>
-        </figure>
-      </section>
-
       <div class="section-head reveal">
         <div>
-          <h2>Najnovejše</h2>
+          <p class="section-kicker">Arhiv</p>
+          <h1 class="page-title">Novice</h1>
           <p class="section-sub" id="feedInfo">Nalagam novice&nbsp;…</p>
         </div>
-        <input type="search" id="searchInput" class="search-input" placeholder="Išči novice" aria-label="Išči novice" />
+        <input type="search" id="searchInput" class="search-input" placeholder="Išči v arhivu" aria-label="Išči novice" />
       </div>
 
       <div class="chips reveal" id="chips" role="tablist" aria-label="Filtri novic"></div>

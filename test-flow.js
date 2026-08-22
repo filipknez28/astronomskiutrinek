@@ -3,37 +3,68 @@ const fs = require("fs");
 const path = require("path");
 const { JSDOM } = require("jsdom");
 
-const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 const appJs = fs.readFileSync(path.join(__dirname, "app.js"), "utf8");
+const authJs = fs.readFileSync(path.join(__dirname, "auth.js"), "utf8");
 
-const dom = new JSDOM(html, { url: "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true });
-const { window } = dom;
-const { document } = window;
+function makeFB() {
+  return {
+    cloud: {
+      "cloud-1": {
+        id: "cloud-1",
+        title: "Novica iz oblaka",
+        summary: "Ta članek prihaja iz Firebase Realtime Database.",
+        content: "Vsebina članka iz oblaka.",
+        image: "",
+        category: "Vesolje",
+        date: "2026-08-18",
+        own: true
+      }
+    },
+    isConfigured: () => true,
+    comments: {},
+    async loadArticles() { return Object.values(this.cloud); },
+    async saveArticle(a) { this.cloud[a.id] = { ...a }; },
+    async deleteArticle(id) { delete this.cloud[id]; },
+    async loadComments(articleId) { return Object.values(this.comments[articleId] || {}); },
+    async saveComment(articleId, c) {
+      this.comments[articleId] = this.comments[articleId] || {};
+      this.comments[articleId][c.id] = { ...c };
+    },
+    async saveUser() {}
+  };
+}
 
-// stubi za okolje, ki ga jsdom nima
-window.confirm = () => true;
-window.fetch = () => Promise.reject(new Error("offline")); // brez interneta -> semena
-window.crypto = window.crypto || require("crypto").webcrypto;
+function dumpStorage(win) {
+  const local = {};
+  for (let i = 0; i < win.localStorage.length; i++) {
+    const k = win.localStorage.key(i);
+    local[k] = win.localStorage.getItem(k);
+  }
+  const session = {};
+  for (let i = 0; i < win.sessionStorage.length; i++) {
+    const k = win.sessionStorage.key(i);
+    session[k] = win.sessionStorage.getItem(k);
+  }
+  return { local, session };
+}
 
-// simuliran Firebase oblak (namesto pravega Firebase strežnika)
-window.FB = {
-  cloud: {
-    "cloud-1": {
-      id: "cloud-1",
-      title: "Novica iz oblaka",
-      summary: "Ta članek prihaja iz Firebase Realtime Database.",
-      content: "Vsebina članka iz oblaka.",
-      image: "",
-      category: "Vesolje",
-      date: "2026-08-18",
-      own: true
-    }
-  },
-  isConfigured: () => true,
-  async loadArticles() { return Object.values(this.cloud); },
-  async saveArticle(a) { this.cloud[a.id] = { ...a }; },
-  async deleteArticle(id) { delete this.cloud[id]; }
-};
+function boot(htmlFile, url, { FB, storage, nav } = {}) {
+  const html = fs.readFileSync(path.join(__dirname, htmlFile), "utf8");
+  const dom = new JSDOM(html, { url, runScripts: "outside-only", pretendToBeVisual: true });
+  const { window } = dom;
+  window.confirm = () => true;
+  window.fetch = () => Promise.reject(new Error("offline"));
+  window.crypto = window.crypto || require("crypto").webcrypto;
+  window.FB = FB;
+  window.__navigate = (u) => { nav.url = u; };
+  if (storage) {
+    Object.entries(storage.local || {}).forEach(([k, v]) => window.localStorage.setItem(k, v));
+    Object.entries(storage.session || {}).forEach(([k, v]) => window.sessionStorage.setItem(k, v));
+  }
+  window.eval(authJs);
+  window.eval(appJs);
+  return window;
+}
 
 let pass = 0, fail = 0;
 const check = (name, cond) => {
@@ -44,116 +75,244 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
   console.log("▶ Zagon aplikacije…");
-  window.eval(appJs);
-  await tick(400); // počakamo na (spodleteli) API klic
+  const FB = makeFB();
+  const nav = { url: "" };
+  const home = boot("index.html", "http://localhost/index.html", { FB, nav });
+  const document = home.document;
+  await tick(400);
 
-  // 1. Začetni prikaz: 6 semenskih novic + 1 novica iz oblaka
+  // 1. Začetni prikaz: samo novica iz oblaka (semena so izbrisana)
   const cards = document.querySelectorAll("#feed .news-card");
-  check(`Prikazanih ${cards.length} novic (pričakovano 7)`, cards.length === 7);
+  check(`Prikazanih ${cards.length} novic (pričakovano 1)`, cards.length === 1);
   check("Novica iz Firebase oblaka je vidna na strani",
     document.getElementById("feed").textContent.includes("Novica iz oblaka"));
   check("Izpostavljena novica ima naslov", document.getElementById("featuredTitle").textContent.length > 5);
+  check("Števec novic ni več nalaganje",
+    !document.getElementById("feedInfo").textContent.includes("Nalagam"));
+  const aboutCopy = fs.readFileSync(path.join(__dirname, "o-strani.html"), "utf8");
+  check("O strani piše Nova luna in Altair",
+    aboutCopy.includes("Nova luna") && aboutCopy.includes("Altair") &&
+    !aboutCopy.includes("Nov luna") && !aboutCopy.includes("Atair"));
 
-  // 1b. Logotip v glavi
+  // 1b. Logotip in favicon
   const headerLogo = document.querySelector(".site-header .brand-logo");
-  check("Logotip v glavi kaže na originalni assets/aqw.png",
-    headerLogo && headerLogo.getAttribute("src") && /^assets\/aqw\.png(\?v=\d+)?$/.test(headerLogo.getAttribute("src")));
+  check("Logotip v glavi je brez črnega okvirja",
+    headerLogo && headerLogo.getAttribute("src") === "assets/logo-clean.png");
   check("Favicon uporablja assets/favicon-32.png",
-    !!document.querySelector("link[rel='icon'][href^='assets/favicon-32.png']"));
+    !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
+  check("Zunanji Spaceflight API je odstranjen",
+    !appJs.includes("spaceflightnewsapi.net") && !appJs.includes("api.nasa.gov"));
+  check("Na strani je urednik Filip Knez",
+    document.getElementById("feed").textContent.includes("Filip Knez"));
 
-  // 1c. Firebase konfiguracija vsebuje pravi URL baze
+  // 1c. Firebase + ločene strani
   const fbConfig = fs.readFileSync(path.join(__dirname, "firebase-config.js"), "utf8");
   check("firebase-config.js vsebuje URL prave baze",
     fbConfig.includes("astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app") &&
     !fbConfig.includes("VAS-PROJEKT"));
+  check("firebase-config.js ima Google apiKey in Analytics",
+    fbConfig.includes("AIzaSyDWbGOIuQWVIduOUoFYai9qi8N1zaqnL5s") &&
+    fbConfig.includes("G-MC6BYYG33W"));
+  check("robots.txt in sitemap obstajata",
+    fs.existsSync(path.join(__dirname, "robots.txt")) &&
+    fs.existsSync(path.join(__dirname, "sitemap.xml")) &&
+    fs.readFileSync(path.join(__dirname, "robots.txt"), "utf8").includes("astronomskiutrinek.top"));
+  check("Naslovnica ima SEO opis in canonical",
+    !!document.querySelector("meta[name='description']") &&
+    !!document.querySelector("link[rel='canonical']"));
+  check("Na domači strani ni razdelka 'O strani'", !document.getElementById("o-strani"));
+  check("Tekoči pas novic je odstranjen", !document.querySelector(".ticker") && !document.getElementById("tickerTrack"));
+  check("Na domači strani ni overlaya članka", !document.getElementById("articleModal"));
+  const aboutHtml = fs.readFileSync(path.join(__dirname, "o-strani.html"), "utf8");
+  check("O strani je lastna stran", aboutHtml.includes("id=\"o-strani\"") && aboutHtml.includes("data-page=\"about\""));
+  check("Podporni e-poštni naslov je na dnu strani",
+    !!document.querySelector(".footer-support[href='mailto:filip.knez28@gmail.com']"));
 
-  // 2. Sprožilec: 9 tapov -> nič, 10. tap -> prijavno okno
+  // 2. Sprožilec: 2 tapova -> nič, 3. tap -> skrbniška stran
   const trigger = document.getElementById("secretTrigger");
   check("Sprožilec je zdaj na vrstici 'Vse pravice pridržane'",
     trigger && trigger.textContent.includes("Vse pravice pridržane"));
   check("Stari napis 'Astronomski trinek 2620C' je odstranjen",
     !document.body.textContent.includes("2620C"));
-  const tap = () => trigger.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
-  for (let i = 0; i < 9; i++) tap();
+  const tap = () => trigger.dispatchEvent(new home.MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
+  for (let i = 0; i < 2; i++) tap();
   await tick(30);
-  check("Po 9 tapih je prijavno okno še skrito", document.getElementById("loginModal").classList.contains("hidden"));
+  check("Po 2 tapih ostaneš na domači strani", nav.url === "");
   tap();
   await tick(30);
-  check("Po 10 tapih se prikaže prijavno okno", !document.getElementById("loginModal").classList.contains("hidden"));
+  check("Po 3 tapih gre na skrbniško stran", nav.url === "admin.html");
 
-  // 3. Napačna koda
-  const code = document.getElementById("adminCode");
+  // 3–4. Prijava na lastni strani
+  const adminWin = boot("admin.html", "http://localhost/admin.html", { FB, nav: { url: "" } });
+  await tick(80);
+  check("Na skrbniški strani je prijavni obrazec viden", !adminWin.document.getElementById("loginModal").classList.contains("hidden"));
+  check("Skrbniški meni je pred prijavo skrit", adminWin.document.getElementById("adminPanel").classList.contains("hidden"));
+
+  const code = adminWin.document.getElementById("adminCode");
   code.value = "000000";
-  document.getElementById("submitCode").click();
-  check("Napačna koda -> sporočilo o napaki", !document.getElementById("loginError").classList.contains("hidden"));
-  check("Napačna koda -> skrbniški meni ostane skrit", document.getElementById("adminPanel").classList.contains("hidden"));
+  adminWin.document.getElementById("submitCode").click();
+  check("Napačna koda -> sporočilo o napaki", !adminWin.document.getElementById("loginError").classList.contains("hidden"));
+  check("Napačna koda -> skrbniški meni ostane skrit", adminWin.document.getElementById("adminPanel").classList.contains("hidden"));
 
-  // 4. Pravilna koda
-  code.value = "123456789";
-  document.getElementById("submitCode").click();
-  check("Pravilna koda -> prijavno okno se zapre", document.getElementById("loginModal").classList.contains("hidden"));
-  check("Pravilna koda -> odpre se skrbniški meni", !document.getElementById("adminPanel").classList.contains("hidden"));
+  code.value = "1237";
+  adminWin.document.getElementById("submitCode").click();
+  check("Pravilna koda -> prijava se zapre", adminWin.document.getElementById("loginModal").classList.contains("hidden"));
+  check("Pravilna koda -> odpre se skrbniški meni", !adminWin.document.getElementById("adminPanel").classList.contains("hidden"));
+  check("Uredniški profil kaže Filipa Kneza",
+    adminWin.document.getElementById("profileName").textContent.includes("Filip Knez"));
+  check("Urejevalnik ima orodja za slike in povezave",
+    !!adminWin.document.getElementById("editorToolbar") &&
+    !!adminWin.document.querySelector("[data-cmd='link']") &&
+    !!adminWin.document.querySelector("[data-cmd='image-file']"));
+  check("Studio za izrez naslovne slike je v uredništvu",
+    !!adminWin.document.getElementById("cropStudio") &&
+    !!adminWin.document.getElementById("cropZoom"));
+  check("Admin ima gumb 'Shrani osnutek'",
+    !!adminWin.document.getElementById("saveDraftBtn"));
+  check("Admin ima način objave in datum za načrtovano objavo",
+    !!adminWin.document.getElementById("fStatus") &&
+    !!adminWin.document.getElementById("fPublishAt"));
 
   // 5. Ustvarjanje članka
-  document.getElementById("fTitle").value = "Testna novica iz admina";
-  document.getElementById("fCategory").value = "Vesolje";
-  document.getElementById("fSummary").value = "To je povzetek testne novice.";
-  document.getElementById("fContent").value = "Prvi odstavek.\n\nDrugi odstavek.";
-  document.getElementById("articleForm").dispatchEvent(new window.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  adminWin.document.getElementById("fTitle").value = "Testna novica iz admina";
+  adminWin.document.getElementById("fCategory").value = "Vesolje";
+  adminWin.document.getElementById("fSummary").value = "To je povzetek testne novice.";
+  adminWin.document.getElementById("fContent").value = "Prvi odstavek.\n\nDrugi odstavek.";
+  adminWin.document.getElementById("articleForm").dispatchEvent(new adminWin.MouseEvent("submit", { bubbles: true, cancelable: true }));
   await tick(30);
-  const feedText = document.getElementById("feed").textContent;
-  check("Nov članek se pojavi na vrhu strani", feedText.includes("Testna novica iz admina"));
-  check("Članek je shranjen v localStorage", JSON.parse(window.localStorage.getItem("astronomski-utrinek-articles-v1")).length === 2);
-  check("Članek ima značko 'Uredniška'", feedText.includes("Uredniška"));
+  const storageAfterCreate = dumpStorage(adminWin);
+  check("Članek je shranjen v localStorage", JSON.parse(storageAfterCreate.local["astronomski-utrinek-articles-v1"]).length === 2);
   check("Članek se zapiše tudi v Firebase oblak",
-    Object.keys(window.FB.cloud).length === 2 &&
-    Object.values(window.FB.cloud).some((a) => a.title === "Testna novica iz admina"));
-  check("Status oblaka: povezano", document.getElementById("cloudStatus").textContent.includes("povezano"));
+    Object.keys(FB.cloud).length === 2 &&
+    Object.values(FB.cloud).some((a) => a.title === "Testna novica iz admina"));
+  check("Status oblaka: povezano", adminWin.document.getElementById("cloudStatus").textContent.includes("povezano"));
 
-  // 6. Branje članka iz feeda
-  const firstCard = document.querySelector("#feed .news-card");
+  const homeAfterCreate = boot("index.html", "http://localhost/index.html", { FB, storage: storageAfterCreate, nav: { url: "" } });
+  await tick(400);
+  const feedText = homeAfterCreate.document.getElementById("feed").textContent;
+  check("Nov članek se pojavi na vrhu strani", feedText.includes("Testna novica iz admina"));
+  check("Članek ima značko 'Uredniška'", feedText.includes("Uredniška"));
+
+  // 6. Branje članka na lastni strani
+  const articleNav = { url: "" };
+  const firstCard = homeAfterCreate.document.querySelector("#feed .news-card");
+  homeAfterCreate.__navigate = (u) => { articleNav.url = u; };
   firstCard.click();
-  check("Klik na kartico odpre članek", !document.getElementById("articleModal").classList.contains("hidden"));
-  check("Naslov v članku se ujema", document.getElementById("articleModalTitle").textContent === "Testna novica iz admina");
-  check("Odstavki so izpisani", document.querySelectorAll("#articleModalContent p").length === 2);
-  document.getElementById("articleModal").classList.add("hidden");
+  check("Klik na kartico odpre stran članka", /clanek\.html\?id=/.test(articleNav.url));
+  const created = JSON.parse(storageAfterCreate.local["astronomski-utrinek-articles-v1"])
+    .find((a) => a.title === "Testna novica iz admina");
+  const artWin = boot("clanek.html", "http://localhost/" + articleNav.url, {
+    FB,
+    storage: dumpStorage(homeAfterCreate),
+    nav: { url: "" }
+  });
+  await tick(400);
+  check("Naslov v članku se ujema", artWin.document.getElementById("articleModalTitle").textContent === "Testna novica iz admina");
+  check("Odstavki so izpisani", artWin.document.querySelectorAll("#articleModalContent p").length === 2);
+  check("Članek je celostranski, ne overlay", artWin.document.body.dataset.page === "article" && !artWin.document.querySelector(".modal-backdrop"));
+  check("Na članku so komentarji", !!artWin.document.getElementById("commentsBox"));
 
   // 7. Urejanje iz admin panela
-  document.querySelector(".admin-list-item").click();
-  check("Klik na članek v adminu naloži v obrazec", document.getElementById("fTitle").value === "Testna novica iz admina");
-  document.getElementById("fTitle").value = "Urejena testna novica";
-  document.getElementById("articleForm").dispatchEvent(new window.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  adminWin.document.querySelector(".admin-list-item").click();
+  check("Klik na članek v adminu naloži v obrazec", adminWin.document.getElementById("fTitle").value === "Testna novica iz admina");
+  adminWin.document.getElementById("fTitle").value = "Urejena testna novica";
+  adminWin.document.getElementById("articleForm").dispatchEvent(new adminWin.MouseEvent("submit", { bubbles: true, cancelable: true }));
   await tick(30);
-  check("Urejanje posodobi naslov na strani", document.getElementById("feed").textContent.includes("Urejena testna novica"));
+  const storageAfterEdit = dumpStorage(adminWin);
+  const homeAfterEdit = boot("index.html", "http://localhost/index.html", { FB, storage: storageAfterEdit, nav: { url: "" } });
+  await tick(400);
+  check("Urejanje posodobi naslov na strani", homeAfterEdit.document.getElementById("feed").textContent.includes("Urejena testna novica"));
   check("Urejanje posodobi članek tudi v oblaku",
-    Object.values(window.FB.cloud).some((a) => a.title === "Urejena testna novica"));
+    Object.values(FB.cloud).some((a) => a.title === "Urejena testna novica"));
 
   // 8. Brisanje
-  document.querySelector(".admin-item-delete").click();
+  adminWin.document.querySelector(".admin-item-delete").click();
   await tick(30);
-  check("Brisanje odstrani članek s strani", !document.getElementById("feed").textContent.includes("Urejena testna novica"));
-  check("Novica iz oblaka ostane na strani", document.getElementById("feed").textContent.includes("Novica iz oblaka"));
-  check("Brisanje posodobi localStorage (ostane le članek iz oblaka)", JSON.parse(window.localStorage.getItem("astronomski-utrinek-articles-v1")).length === 1);
+  const storageAfterDelete = dumpStorage(adminWin);
+  const homeAfterDelete = boot("index.html", "http://localhost/index.html", { FB, storage: storageAfterDelete, nav: { url: "" } });
+  await tick(400);
+  check("Brisanje odstrani članek s strani", !homeAfterDelete.document.getElementById("feed").textContent.includes("Urejena testna novica"));
+  check("Novica iz oblaka ostane na strani", homeAfterDelete.document.getElementById("feed").textContent.includes("Novica iz oblaka"));
+  check("Brisanje posodobi localStorage (ostane le članek iz oblaka)", JSON.parse(storageAfterDelete.local["astronomski-utrinek-articles-v1"]).length === 1);
   check("Brisanje odstrani članek tudi iz Firebase oblaka",
-    Object.keys(window.FB.cloud).length === 1 &&
-    !Object.values(window.FB.cloud).some((a) => a.title === "Urejena testna novica"));
-  check("Admin lista še vedno prikazuje preostali članek iz oblaka", document.getElementById("adminListEmpty").classList.contains("hidden"));
+    Object.keys(FB.cloud).length === 1 &&
+    !Object.values(FB.cloud).some((a) => a.title === "Urejena testna novica"));
+  check("Admin lista še vedno prikazuje preostali članek iz oblaka", adminWin.document.getElementById("adminListEmpty").classList.contains("hidden"));
 
   // 9. Iskanje in filter
-  const search = document.getElementById("searchInput");
-  search.value = "NGC 1333";
-  search.dispatchEvent(new window.MouseEvent("input", { bubbles: true }));
+  const search = homeAfterDelete.document.getElementById("searchInput");
+  search.value = "oblaka";
+  search.dispatchEvent(new homeAfterDelete.MouseEvent("input", { bubbles: true }));
   await tick(300);
-  check("Iskanje 'NGC 1333' vrne 1 novico", document.querySelectorAll("#feed .news-card").length === 1);
+  check("Iskanje 'oblaka' vrne 1 novico", homeAfterDelete.document.querySelectorAll("#feed .news-card").length === 1);
   search.value = "";
-  search.dispatchEvent(new window.MouseEvent("input", { bubbles: true }));
+  search.dispatchEvent(new homeAfterDelete.MouseEvent("input", { bubbles: true }));
   await tick(300);
-  const chipRakete = [...document.querySelectorAll(".chip")].find((c) => c.dataset.filter === "Rakete");
-  chipRakete.click();
-  check("Filter 'Rakete' vrne 1 novico", document.querySelectorAll("#feed .news-card").length === 1);
-  document.querySelector('.chip[data-filter="Vse"]').click();
+  const chipVesolje = [...homeAfterDelete.document.querySelectorAll(".chip")].find((c) => c.dataset.filter === "Vesolje");
+  chipVesolje.click();
+  check("Filter 'Vesolje' vrne 1 novico", homeAfterDelete.document.querySelectorAll("#feed .news-card").length === 1);
+  homeAfterDelete.document.querySelector('.chip[data-filter="Vse"]').click();
 
-  // 10. Preverjanje, da sprožilec nima povratne informacije (noben stil se ne spremeni ob tapu)
+  const authWin = boot("prijava.html", "http://localhost/prijava.html", { FB, nav: { url: "" } });
+  await tick(50);
+  check("Stran za prijavo obstaja", !!authWin.document.getElementById("loginForm"));
+  check("Lahko ustvariš svoj profil", !!authWin.document.getElementById("registerForm"));
+  check("Gumb za Google prijavo je tu", !!authWin.document.getElementById("googleBtn"));
+  check("V profilu lahko spremeniš ime",
+    !!authWin.document.getElementById("meNameInput") &&
+    !!authWin.document.getElementById("saveNameBtn"));
+
+  // 10b. Osnutki in načrtovane objave niso javno vidne
+  const draftWin = boot("admin.html", "http://localhost/admin.html", {
+    FB,
+    storage: { local: {}, session: { "astronomski-utrinek-admin": "1" } },
+    nav: { url: "" }
+  });
+  await tick(80);
+  draftWin.document.getElementById("fTitle").value = "Skrit osnutek";
+  draftWin.document.getElementById("fCategory").value = "Vesolje";
+  draftWin.document.getElementById("fSummary").value = "Osnutek.";
+  draftWin.document.getElementById("fContent").value = "Vsebina osnutka.";
+  draftWin.document.getElementById("saveDraftBtn").click();
+  await tick(40);
+  const draftStorage = dumpStorage(draftWin);
+  const draftSaved = JSON.parse(draftStorage.local["astronomski-utrinek-articles-v1"])
+    .find((a) => a.title === "Skrit osnutek");
+  check("Gumb 'Shrani osnutek' shrani kot osnutek", draftSaved && draftSaved.status === "draft");
+  const homeWithDraft = boot("index.html", "http://localhost/index.html", { FB, storage: draftStorage, nav: { url: "" } });
+  await tick(400);
+  check("Osnutek ni viden na javni strani",
+    !homeWithDraft.document.getElementById("feed").textContent.includes("Skrit osnutek"));
+
+  const schedWin = boot("admin.html", "http://localhost/admin.html", {
+    FB,
+    storage: draftStorage,
+    nav: { url: "" }
+  });
+  await tick(80);
+  schedWin.document.getElementById("fTitle").value = "Načrtovana novica";
+  schedWin.document.getElementById("fCategory").value = "Vesolje";
+  schedWin.document.getElementById("fSummary").value = "Načrtovana.";
+  schedWin.document.getElementById("fContent").value = "Vsebina načrtovane novice.";
+  schedWin.document.getElementById("fStatus").value = "scheduled";
+  const future = new Date(Date.now() + 7 * 864e5);
+  const p = (n) => String(n).padStart(2, "0");
+  schedWin.document.getElementById("fPublishAt").value =
+    `${future.getFullYear()}-${p(future.getMonth() + 1)}-${p(future.getDate())}T${p(future.getHours())}:${p(future.getMinutes())}`;
+  schedWin.document.getElementById("articleForm").dispatchEvent(
+    new schedWin.MouseEvent("submit", { bubbles: true, cancelable: true })
+  );
+  await tick(40);
+  const schedStorage = dumpStorage(schedWin);
+  const schedSaved = JSON.parse(schedStorage.local["astronomski-utrinek-articles-v1"])
+    .find((a) => a.title === "Načrtovana novica");
+  check("Načrtovana objava se shrani z datumom", schedSaved && schedSaved.status === "scheduled" && !!schedSaved.publishAt);
+  const homeWithSched = boot("index.html", "http://localhost/index.html", { FB, storage: schedStorage, nav: { url: "" } });
+  await tick(400);
+  check("Načrtovana objava ni viden na javni strani pred datumom",
+    !homeWithSched.document.getElementById("feed").textContent.includes("Načrtovana novica"));
+
+  // 10. Sprožilec brez povratne informacije
   const before = trigger.getAttribute("style");
   tap();
   check("Tap na sprožilec ne spremeni elementa (brez animacije)", trigger.getAttribute("style") === before);
