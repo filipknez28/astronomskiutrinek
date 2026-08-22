@@ -98,8 +98,17 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   const headerLogo = document.querySelector(".site-header .brand-logo");
   check("Logotip v glavi je brez črnega okvirja",
     headerLogo && headerLogo.getAttribute("src") === "assets/logo-clean.png");
-  check("Favicon uporablja assets/favicon-32.png",
-    !!document.querySelector("link[rel='icon'][href='assets/favicon-32.png']"));
+  // Google zahteva ikono, ki je večkratnik 48px (48, 96, 144 ...), zato 16/32/64 ne uporabljamo.
+  check("Favicon uporablja /assets/favicon-48.png",
+    !!document.querySelector("link[rel='icon'][href='/assets/favicon-48.png']"));
+
+  check("Na voljo je večja ikona za Google (144px ali več)",
+    !!document.querySelector("link[rel='icon'][href='/assets/favicon-144.png']") &&
+    !!document.querySelector("link[rel='icon'][href='/assets/favicon-512.png']"));
+
+  check("Ni ikon, ki niso večkratnik 48px (16/32/64)",
+    [...document.querySelectorAll("link[rel='icon']")]
+      .every((l) => !/favicon-(16|32|64)\.png/.test(l.getAttribute("href") || "")));
   check("Zunanji Spaceflight API je odstranjen",
     !appJs.includes("spaceflightnewsapi.net") && !appJs.includes("api.nasa.gov"));
   check("Na strani je urednik Filip Knez",
