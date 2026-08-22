@@ -1506,16 +1506,6 @@ textarea#fContent {
 .meta-i { display: inline-flex; align-items: center; gap: 4px; }
 .meta-i .ico { width: 13px; height: 13px; }
 
-.place-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 11px; }
-.place-card {
-  display: flex; align-items: center; gap: 11px; padding: 11px 13px;
-  border-radius: 15px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02);
-}
-.place-flag { font-size: 1.4rem; }
-.place-card strong { display: block; font-size: 0.88rem; }
-.place-card span { color: var(--muted); font-size: 0.75rem; }
-.place-bar { height: 3px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); margin-top: 6px; overflow: hidden; }
-.place-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
 
 /* --- Orodna vrstica --- */
 .toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
@@ -1592,7 +1582,6 @@ textarea#fContent {
 .user-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .user-card-top img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 .user-card-top strong { display: block; font-size: 0.95rem; letter-spacing: -0.01em; }
-.u-place { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 0.77rem; margin-top: 2px; }
 .user-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .u-chip {
   display: inline-flex; align-items: center; gap: 5px;
@@ -1662,8 +1651,6 @@ textarea#fContent {
 }
 .official-toggle strong { color: #2997ff; }
 .official-toggle input { accent-color: #2997ff; }
-.comment-place { display: inline-flex; align-items: center; gap: 4px; }
-.comment-place .ico { width: 13px; height: 13px; }
 
 /* --- Responsivnost --- */
 @media (max-width: 1040px) { .split-grid { grid-template-columns: 1fr; } }
@@ -1690,3 +1677,4 @@ body.portal-open { overflow: hidden; }
 .purge-btn .ico { width: 15px; height: 15px; }
 .comment-btn .ico { width: 15px; height: 15px; vertical-align: -0.2em; }
 .comment-delete { color: var(--danger); }
+.u-place { display: block; color: var(--muted); font-size: 0.77rem; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

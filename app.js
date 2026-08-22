@@ -1575,8 +1575,6 @@ function commentHtml(c) {
     `</div>`;
   const officialBadge = c.official
     ? `<span class="badge-official">${ICO("star")}${escapeHtml(c.role || "Uredništvo")}</span>` : "";
-  const placeTag = (c.city || c.country)
-    ? `<span class="comment-place">${ICO("planet")}${escapeHtml(placeLabel(c))}</span>` : "";
   const img = c.image
     ? `<img src="${escapeHtml(c.image)}" alt="Priloga h komentarju" loading="lazy" onerror="this.remove()" />` : "";
   const link = c.link
@@ -1588,7 +1586,7 @@ function commentHtml(c) {
       <div class="comment-body">
         <div class="comment-head">
           <strong>${escapeHtml(c.name || "Anonimnež")}</strong>${officialBadge}${roleBadge}${bannedBadge}
-          <time>${escapeHtml(formatDate((c.date || "").slice(0, 10)))}</time> ${edited} ${placeTag}
+          <time>${escapeHtml(formatDate((c.date || "").slice(0, 10)))}</time> ${edited}
         </div>
         <p class="comment-text" id="ctext-${escapeHtml(c.id)}">${escapeHtml(c.text)}</p>
         ${media}
@@ -1673,7 +1671,6 @@ function toggleReplyForm(c) {
     if (!t) return;
     if (!asOfficial && (!u || currentUserBanned())) return;
     const who = asOfficial ? officialAuthor() : { userId: u.id, name: u.name, avatar: u.avatar || "", role: "" };
-    const place = asOfficial ? {} : await myPlace();
     const reply = {
       id: makeId(),
       name: who.name,
@@ -1683,9 +1680,6 @@ function toggleReplyForm(c) {
       official: !!asOfficial,
       parentId: c.id,
       text: t,
-      city: place.city || "",
-      country: place.country || "",
-      countryCode: place.countryCode || "",
       date: new Date().toISOString()
     };
     const list = loadLocalComments(currentArticleId).concat(reply);
@@ -1750,7 +1744,6 @@ async function initComments(articleId) {
       if (!text || !currentArticleId) return;
       if (!asOfficial && (!u || currentUserBanned())) return;
       const who = asOfficial ? officialAuthor() : { userId: u.id, name: u.name, avatar: u.avatar || "", role: "" };
-      const place = asOfficial ? {} : await myPlace();
       const comment = {
         id: makeId(),
         name: who.name,
@@ -1761,9 +1754,6 @@ async function initComments(articleId) {
         text,
         image: safeUrl($("commentImage") ? $("commentImage").value : ""),
         link: safeUrl($("commentLink") ? $("commentLink").value : ""),
-        city: place.city || "",
-        country: place.country || "",
-        countryCode: place.countryCode || "",
         date: new Date().toISOString()
       };
       const next = loadLocalComments(currentArticleId).concat(comment);
@@ -2002,7 +1992,6 @@ function initAuthPage() {
    Skrbniški portal — pregled, komentarji, uporabniki, profil
    =================================================================== */
 
-const PLACE_KEY = "astronomski-utrinek-place-v1";
 const OFFICIAL_ID = "official-utrednistvo";
 
 let portalTab = "dashboard";
@@ -2041,18 +2030,6 @@ function relTime(iso) {
   return formatDate(new Date(t).toISOString().slice(0, 10));
 }
 
-function flagFromCode(code) {
-  const c = String(code || "").trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(c)) return "🌍";
-  return String.fromCodePoint(...[...c].map((ch) => 127397 + ch.charCodeAt(0)));
-}
-
-function placeLabel(o) {
-  if (!o) return "Neznana lokacija";
-  const parts = [o.city, o.country].filter(Boolean);
-  return parts.length ? parts.join(", ") : "Neznana lokacija";
-}
-
 function safeUrl(u) {
   const s = String(u || "").trim();
   if (/^data:image\//i.test(s)) return s;
@@ -2072,34 +2049,6 @@ function officialAuthor() {
     avatar: (profile && profile.avatar) || "assets/filip-knez.jpg",
     role: (profile && profile.role) || "Urednik"
   };
-}
-
-/* ---------- Približna lokacija obiskovalca (mesto, država) ---------- */
-async function myPlace() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(PLACE_KEY) || "null");
-    if (cached && cached.t && Date.now() - cached.t < 7 * 86400000) return cached.p;
-  } catch (e) { /* ignore */ }
-  const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ""; } })();
-  let place = { city: "", country: "", countryCode: "", tz };
-  for (const url of ["https://ipapi.co/json/", "https://ipwho.is/"]) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 6000);
-      const res = await fetch(url, { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (!res.ok) continue;
-      const d = await res.json();
-      const city = d.city || "";
-      const country = d.country_name || d.country || "";
-      if (city || country) {
-        place = { city, country, countryCode: String(d.country_code || "").slice(0, 2), tz };
-        break;
-      }
-    } catch (e) { /* poskusimo naslednjega */ }
-  }
-  try { localStorage.setItem(PLACE_KEY, JSON.stringify({ t: Date.now(), p: place })); } catch (e) { /* ignore */ }
-  return place;
 }
 
 /* ---------- Zbiranje podatkov za portal ---------- */
@@ -2151,9 +2100,6 @@ async function loadPortalData() {
       name: known.name || c.name || "Uporabnik",
       avatar: known.avatar || c.avatar || "",
       email: known.email || "",
-      city: known.city || c.city || "",
-      country: known.country || c.country || "",
-      countryCode: known.countryCode || c.countryCode || "",
       lastSeen: !known.lastSeen || String(c.date) > String(known.lastSeen) ? c.date : known.lastSeen
     });
   });
@@ -2289,30 +2235,6 @@ function statCardHtml(icon, value, label, extra) {
     </div>`;
 }
 
-function placesHtml() {
-  const byCountry = new Map();
-  portalUsers.forEach((u) => {
-    const key = (u.country || "Neznano") + "|" + (u.countryCode || "");
-    byCountry.set(key, (byCountry.get(key) || 0) + 1);
-  });
-  const list = [...byCountry.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  if (!list.length) return `<p class="admin-empty">Lokacije še niso znane. Pokažejo se, ko kdo komentira.</p>`;
-  const max = list[0][1];
-  return list.map(([key, n]) => {
-    const [country, code] = key.split("|");
-    const cities = [...new Set(portalUsers.filter((u) => (u.country || "Neznano") === country && u.city).map((u) => u.city))];
-    return `
-      <div class="place-card">
-        <span class="place-flag">${flagFromCode(code)}</span>
-        <div style="flex:1;min-width:0">
-          <strong>${escapeHtml(country)}</strong>
-          <span>${n} ${n === 1 ? "uporabnik" : n === 2 ? "uporabnika" : "uporabnikov"}${cities.length ? " · " + escapeHtml(cities.slice(0, 2).join(", ")) : ""}</span>
-          <div class="place-bar"><i style="width:${Math.round((n / max) * 100)}%"></i></div>
-        </div>
-      </div>`;
-  }).join("");
-}
-
 function renderPortalDashboard() {
   if (!$("statGrid")) return;
   const dayAgo = Date.now() - 86400000;
@@ -2353,16 +2275,14 @@ function renderPortalDashboard() {
           <div class="mini-body">
             <strong>${escapeHtml(u.name || "Uporabnik")}</strong>
             <div class="meta">
-              <span class="meta-i">${flagFromCode(u.countryCode)} ${escapeHtml(placeLabel(u))}</span>
-              <span class="meta-i">${ICO("quote")}${st.comments}</span>
+              <span class="meta-i">${ICO("quote")}${st.comments} ${st.comments === 1 ? "komentar" : "komentarjev"}</span>
+              <span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(st.last || u.lastSeen))}</span>
             </div>
           </div>
         </button>`;
       }).join("")
     : `<p class="admin-empty">Še ni registriranih uporabnikov.</p>`;
 
-  $("dashPlaces").innerHTML = placesHtml();
-  if ($("profilePlaces")) $("profilePlaces").innerHTML = placesHtml();
 
   document.querySelectorAll("[data-open-user]").forEach((el) => {
     el.onclick = () => { switchPortalTab("users"); openUserDrawer(el.dataset.openUser); };
@@ -2390,8 +2310,6 @@ function portalRoots() {
 }
 
 function portalCommentRow(c) {
-  const place = c.city || c.country
-    ? `<span class="meta-i">${ICO("planet")}${escapeHtml(placeLabel(c))}</span>` : "";
   const img = c.image ? `<img src="${escapeHtml(c.image)}" alt="" loading="lazy" onerror="this.remove()" />` : "";
   const link = c.link
     ? `<a class="c-link" href="${escapeHtml(c.link)}" target="_blank" rel="noopener nofollow">${ICO("link")}${escapeHtml(c.link.replace(/^https?:\/\//, "").slice(0, 42))}</a>` : "";
@@ -2406,7 +2324,6 @@ function portalCommentRow(c) {
         <div class="c-name">${name}${badge}</div>
         <div class="c-meta">
           <span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(c.date))}</span>
-          ${place}
         </div>
         <div class="c-text">${escapeHtml(c.text || "")}</div>
         ${img || link ? `<div class="c-media">${img}${link}</div>` : ""}
@@ -2517,7 +2434,7 @@ async function deletePortalComment(articleId, id) {
 function sortedPortalUsers() {
   let list = [...portalUsers];
   if (portalUserQuery) {
-    list = list.filter((u) => [u.name, u.email, u.city, u.country].filter(Boolean).join(" ").toLowerCase().includes(portalUserQuery));
+    list = list.filter((u) => [u.name, u.email].filter(Boolean).join(" ").toLowerCase().includes(portalUserQuery));
   }
   if (portalUserSort === "active") list.sort((a, b) => statsForUser(b.id).comments - statsForUser(a.id).comments);
   else if (portalUserSort === "media") {
@@ -2543,7 +2460,7 @@ function userCardHtml(u) {
           <img src="${escapeHtml(u.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
           <div>
             <strong>${escapeHtml(u.name || "Uporabnik")}</strong>
-            <span class="u-place">${flagFromCode(u.countryCode)} ${escapeHtml(placeLabel(u))}</span>
+            ${u.email ? `<span class="u-place">${escapeHtml(u.email)}</span>` : ""}
           </div>
         </div>
         <div class="user-chips">
@@ -2597,7 +2514,6 @@ function openUserDrawer(id) {
         <img src="${escapeHtml(u.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
         <div>
           <h2>${escapeHtml(u.name || "Uporabnik")}</h2>
-          <p>${flagFromCode(u.countryCode)} ${escapeHtml(placeLabel(u))}</p>
           <p>${ICO("orbit")} Nazadnje ${escapeHtml(relTime(st.last || u.lastSeen))}</p>
           ${u.email ? `<p>${escapeHtml(u.email)}</p>` : ""}
         </div>
