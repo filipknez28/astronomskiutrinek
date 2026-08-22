@@ -1138,6 +1138,80 @@ body[data-page="admin"] { background: #000; color: var(--ink); }
 .comment-gate a { color: var(--accent); }
 .comment-empty { color: var(--muted); }
 
+/* Komentarji — odgovori, urejanje, vloge */
+.comment-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.comment-body { flex: 1; min-width: 0; }
+.comment.is-reply { margin-left: 30px; padding-left: 14px; border-left: 2px solid var(--line); }
+.comment-thread { display: grid; gap: 16px; }
+.comment-text { white-space: pre-wrap; word-wrap: break-word; }
+.comment-edited { color: var(--muted); font-size: 0.72rem; font-style: italic; }
+.comment-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.comment-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.comment-btn:hover { color: var(--text); background: rgba(123, 140, 255, 0.12); }
+.comment-btn.comment-delete { color: var(--danger); }
+.comment-btn.comment-delete:hover { background: rgba(255, 107, 125, 0.16); }
+.comment-reply-form { margin-top: 10px; display: grid; gap: 10px; }
+.comment-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.comment-reply-wrap { margin-top: 4px; }
+
+.role-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 214, 0.3);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.role-badge.role-admin { color: #f5c96b; border-color: rgba(245, 201, 107, 0.5); }
+.role-badge.role-moderator { color: #5eead4; border-color: rgba(94, 234, 212, 0.5); }
+.role-badge.role-banned { color: var(--danger); border-color: rgba(255, 107, 125, 0.5); }
+
+/* Uporabniki in vloge (admin) */
+.users-admin { padding: 26px 28px 34px; border-top: 1px solid rgba(148, 163, 214, 0.14); }
+.users-head h2 { font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 6px; }
+.users-head .modal-sub { margin-bottom: 18px; }
+.users-list { list-style: none; display: grid; gap: 10px; }
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: rgba(7, 10, 22, 0.9);
+  border: 1px solid rgba(148, 163, 214, 0.14);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.user-item.is-banned { border-color: rgba(255, 107, 125, 0.4); background: rgba(255, 107, 125, 0.06); }
+.user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.user-info { flex: 1; min-width: 160px; }
+.user-info h5 { font-family: var(--font-display); font-size: 0.95rem; margin-bottom: 3px; }
+.user-info p { color: var(--muted); font-size: 0.78rem; }
+.user-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-mini {
+  padding: 6px 11px;
+  font-size: 0.75rem;
+  border-radius: 9px;
+  border: 1px solid rgba(148, 163, 214, 0.24);
+  background: rgba(123, 140, 255, 0.08);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.btn-mini:hover { background: rgba(123, 140, 255, 0.18); }
+.btn-mini.btn-ban { color: var(--danger); border-color: rgba(255, 107, 125, 0.35); background: rgba(255, 107, 125, 0.08); }
+.btn-mini.btn-ban:hover { background: rgba(255, 107, 125, 0.18); }
+
 .auth-page { padding: 64px 0 100px; }
 .auth-card {
   max-width: 420px;

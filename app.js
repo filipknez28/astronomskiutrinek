@@ -1065,6 +1065,7 @@ function openAdmin() {
   showModal("adminPanel");
   resetForm();
   renderAdminList();
+  if ($("usersList")) renderUsersList();
   setCloudStatus(cloudStatus);
   if ($("fTitle")) $("fTitle").focus();
 }
@@ -1429,6 +1430,79 @@ function initFilters() {
 }
 
 
+/* ---------- Vloge uporabnikov (moderator / admin) in bani ---------- */
+const ROLES_KEY = "astronomski-utrinek-roles-v1";
+let roles = loadLocalRoles();
+
+function loadLocalRoles() {
+  try {
+    const raw = localStorage.getItem(ROLES_KEY);
+    if (raw) { const o = JSON.parse(raw); if (o && typeof o === "object") return o; }
+  } catch (e) { /* ignore */ }
+  return {};
+}
+function saveLocalRoles() {
+  try { localStorage.setItem(ROLES_KEY, JSON.stringify(roles)); } catch (e) { /* ignore */ }
+}
+async function syncRolesFromCloud() {
+  if (!fbReady() || !FB.loadRoles) return;
+  try {
+    const remote = await FB.loadRoles();
+    if (remote && typeof remote === "object") {
+      roles = { ...roles, ...remote };
+      saveLocalRoles();
+    }
+  } catch (e) { /* offline */ }
+}
+function saveRoleToCloud(userId, obj) {
+  if (!fbReady() || !FB.saveRole) return;
+  FB.saveRole(userId, obj).catch(() => { /* offline */ });
+}
+function getRoleForUser(userId) {
+  return roles[userId] || { role: "user", bannedUntil: null };
+}
+function isOwner() {
+  return sessionStorage.getItem(SESSION_KEY) === "1";
+}
+function currentUser() {
+  return window.AUAuth && AUAuth.current ? AUAuth.current() : null;
+}
+function currentUserBanned() {
+  const u = currentUser();
+  if (!u) return false;
+  const r = getRoleForUser(u.id);
+  return !!(r.bannedUntil && r.bannedUntil > Date.now());
+}
+function canModerateComments() {
+  if (isOwner()) return true;
+  const u = currentUser();
+  if (!u) return false;
+  const r = getRoleForUser(u.id);
+  return r.role === "moderator" || r.role === "admin";
+}
+function canEditArticles() {
+  if (isOwner()) return true;
+  const u = currentUser();
+  if (!u) return false;
+  return getRoleForUser(u.id).role === "admin";
+}
+function setUserRole(userId, role, bannedUntil) {
+  const cur = getRoleForUser(userId);
+  roles[userId] = {
+    ...cur,
+    role: role || cur.role || "user",
+    bannedUntil: bannedUntil === undefined ? cur.bannedUntil : bannedUntil
+  };
+  saveLocalRoles();
+  saveRoleToCloud(userId, roles[userId]);
+  renderUsersList();
+  if (currentArticleId) {
+    const list = loadLocalComments(currentArticleId);
+    renderCommentList(list);
+  }
+  paintCommentsGate();
+}
+
 /* ---------- Komentarji ---------- */
 const COMMENTS_KEY = "astronomski-utrinek-comments-v1";
 let currentArticleId = null;
@@ -1447,6 +1521,15 @@ function saveLocalComments(articleId, list) {
   } catch (e) { /* ignore */ }
 }
 
+function canEditComment(c) {
+  const u = currentUser();
+  if (u && c.userId && u.id === c.userId) return true; // svoj komentar
+  return canModerateComments();
+}
+function canDeleteComment(c) {
+  return canEditComment(c);
+}
+
 function renderCommentList(list) {
   const box = $("commentList");
   if (!box) return;
@@ -1454,23 +1537,155 @@ function renderCommentList(list) {
     box.innerHTML = "<p class=\"comment-empty\">Še ni komentarjev. Bodi prvi.</p>";
     return;
   }
-  box.innerHTML = list.map((c) => `
-    <article class="comment">
+  const byParent = {};
+  list.forEach((c) => {
+    (byParent[c.parentId || ""] = byParent[c.parentId || ""] || []).push(c);
+  });
+  const build = (parentId) =>
+    (byParent[parentId] || [])
+      .map((c) => commentHtml(c) + (byParent[c.id] ? `<div class="comment-thread">${build(c.id)}</div>` : ""))
+      .join("");
+  box.innerHTML = build("");
+  list.forEach((c) => attachCommentEvents(c));
+}
+
+function commentHtml(c) {
+  const u = currentUser();
+  const role = getRoleForUser(c.userId || "").role;
+  const banned = getRoleForUser(c.userId || "").bannedUntil > Date.now();
+  const roleBadge = role === "admin"
+    ? `<span class="role-badge role-admin">Admin</span>`
+    : role === "moderator"
+      ? `<span class="role-badge role-moderator">Moderator</span>` : "";
+  const bannedBadge = banned ? `<span class="role-badge role-banned">⛔ Banan</span>` : "";
+  const edited = c.editedAt ? `<span class="comment-edited">(urejeno)</span>` : "";
+  const canReply = !!u && !currentUserBanned();
+  const canEdit = canEditComment(c);
+  const canDel = canDeleteComment(c);
+  const actions =
+    `<div class="comment-actions">` +
+    (canReply ? `<button class="comment-btn" data-reply="${escapeHtml(c.id)}">↩ Odgovori</button>` : "") +
+    (canEdit ? `<button class="comment-btn" data-edit="${escapeHtml(c.id)}">✎ Uredi</button>` : "") +
+    (canDel ? `<button class="comment-btn comment-delete" data-delete="${escapeHtml(c.id)}">🗑</button>` : "") +
+    `</div>`;
+  return `
+    <article class="comment ${c.parentId ? "is-reply" : ""}" data-cid="${escapeHtml(c.id)}">
       <img src="${escapeHtml(c.avatar || "assets/filip-knez.jpg")}" alt="">
-      <div>
-        <strong>${escapeHtml(c.name || "Anonimnež")}</strong>
-        <time>${escapeHtml(formatDate((c.date || "").slice(0, 10)))}</time>
-        <p>${escapeHtml(c.text)}</p>
+      <div class="comment-body">
+        <div class="comment-head">
+          <strong>${escapeHtml(c.name || "Anonimnež")}</strong>${roleBadge}${bannedBadge}
+          <time>${escapeHtml(formatDate((c.date || "").slice(0, 10)))}</time> ${edited}
+        </div>
+        <p class="comment-text" id="ctext-${escapeHtml(c.id)}">${escapeHtml(c.text)}</p>
+        ${actions}
+        <div class="comment-reply-wrap" id="creply-${escapeHtml(c.id)}"></div>
       </div>
-    </article>`).join("");
+    </article>`;
+}
+
+function attachCommentEvents(c) {
+  const root = document.querySelector(`.comment[data-cid="${c.id}"]`);
+  if (!root) return;
+  const del = root.querySelector(`[data-delete="${c.id}"]`);
+  if (del) del.addEventListener("click", async () => {
+    if (!confirm("Ali res želite izbrisati ta komentar?")) return;
+    const list = loadLocalComments(currentArticleId).filter((x) => x.id !== c.id);
+    saveLocalComments(currentArticleId, list);
+    renderCommentList(list);
+    if (fbReady() && FB.deleteComment) {
+      try { await FB.deleteComment(currentArticleId, c.id); } catch (e) { /* ignore */ }
+    }
+    if ($("usersList")) renderUsersList();
+  });
+  const edit = root.querySelector(`[data-edit="${c.id}"]`);
+  if (edit) edit.addEventListener("click", () => startEditComment(c));
+  const reply = root.querySelector(`[data-reply="${c.id}"]`);
+  if (reply) reply.addEventListener("click", () => toggleReplyForm(c));
+}
+
+function startEditComment(c) {
+  const box = $("ctext-" + c.id);
+  if (!box) return;
+  const actions = box.parentElement.querySelector(".comment-actions");
+  if (actions) actions.style.display = "none";
+  const wrap = document.createElement("div");
+  wrap.className = "comment-reply-form";
+  wrap.innerHTML = `
+    <textarea class="text-input" id="editArea-${c.id}" rows="2">${escapeHtml(c.text)}</textarea>
+    <div class="comment-form-actions">
+      <button class="btn btn-small" type="button" id="editSave-${c.id}">Shrani</button>
+      <button class="btn btn-ghost btn-small" type="button" id="editCancel-${c.id}">Prekliči</button>
+    </div>`;
+  box.replaceWith(wrap);
+  const area = $("editArea-" + c.id);
+  area.focus();
+  $("editSave-" + c.id).addEventListener("click", async () => {
+    const t = area.value.trim();
+    if (!t) return;
+    c.text = t;
+    c.editedAt = new Date().toISOString();
+    const list = loadLocalComments(currentArticleId).map((x) => (x.id === c.id ? c : x));
+    saveLocalComments(currentArticleId, list);
+    renderCommentList(list);
+    if (fbReady() && FB.saveComment) { try { await FB.saveComment(currentArticleId, c); } catch (e) { /* ignore */ } }
+  });
+  $("editCancel-" + c.id).addEventListener("click", () => renderCommentList(loadLocalComments(currentArticleId)));
+}
+
+function toggleReplyForm(c) {
+  const wrap = $("creply-" + c.id);
+  if (!wrap) return;
+  if (wrap.innerHTML) { wrap.innerHTML = ""; return; }
+  wrap.innerHTML = `
+    <form class="comment-reply-form" id="replyForm-${c.id}">
+      <textarea class="text-input" id="replyArea-${c.id}" rows="2" placeholder="Odgovori na komentar…"></textarea>
+      <div class="comment-form-actions">
+        <button class="btn btn-primary btn-small" type="submit">↩ Objavi odgovor</button>
+        <button class="btn btn-ghost btn-small" type="button" id="replyCancel-${c.id}">Prekliči</button>
+      </div>
+    </form>`;
+  $("replyForm-" + c.id).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const u = currentUser();
+    const t = $("replyArea-" + c.id).value.trim();
+    if (!u || !t || currentUserBanned()) return;
+    const reply = {
+      id: makeId(),
+      name: u.name,
+      avatar: u.avatar || "",
+      userId: u.id,
+      parentId: c.id,
+      text: t,
+      date: new Date().toISOString()
+    };
+    const list = loadLocalComments(currentArticleId).concat(reply);
+    saveLocalComments(currentArticleId, list);
+    renderCommentList(list);
+    if (fbReady() && FB.saveComment) { try { await FB.saveComment(currentArticleId, reply); } catch (e) { /* ignore */ } }
+    if ($("usersList")) renderUsersList();
+  });
+  $("replyCancel-" + c.id).addEventListener("click", () => { wrap.innerHTML = ""; });
+}
+
+function paintCommentsGate() {
+  if (!$("commentsBox")) return;
+  const u = currentUser();
+  const banned = currentUserBanned();
+  if ($("commentForm")) {
+    $("commentForm").classList.toggle("hidden", !u || banned);
+  }
+  if ($("commentGate")) {
+    if (!u) $("commentGate").innerHTML = 'Za komentar se <a href="prijava.html">prijavi ali ustvari profil</a>.';
+    else if (banned) $("commentGate").innerHTML = "⛔ Trenutno ste začasno banani in ne morete komentirati.";
+    else $("commentGate").classList.add("hidden");
+    $("commentGate").classList.toggle("hidden", !!u && !banned);
+  }
 }
 
 async function initComments(articleId) {
   currentArticleId = articleId;
   if (!$("commentsBox")) return;
-  const user = window.AUAuth && AUAuth.current && AUAuth.current();
-  if ($("commentForm")) $("commentForm").classList.toggle("hidden", !user);
-  if ($("commentGate")) $("commentGate").classList.toggle("hidden", !!user);
+  paintCommentsGate();
   let list = loadLocalComments(articleId);
   if (fbReady() && FB.loadComments) {
     try {
@@ -1489,9 +1704,9 @@ async function initComments(articleId) {
     form.dataset.bound = "1";
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const u = AUAuth.current();
+      const u = currentUser();
       const text = ($("commentText").value || "").trim();
-      if (!u || !text || !currentArticleId) return;
+      if (!u || currentUserBanned() || !text || !currentArticleId) return;
       const comment = {
         id: makeId(),
         name: u.name,
@@ -1507,8 +1722,97 @@ async function initComments(articleId) {
       if (fbReady() && FB.saveComment) {
         try { await FB.saveComment(currentArticleId, comment); } catch (err) { /* ignore */ }
       }
+      if ($("usersList")) renderUsersList();
     });
   }
+  window.addEventListener("au-auth", paintCommentsGate);
+}
+
+/* ---------- Uporabniki in vloge (v skrbniškem meniju) ---------- */
+function collectKnownUsers() {
+  const seen = {};
+  try {
+    const all = JSON.parse(localStorage.getItem(COMMENTS_KEY) || "{}");
+    Object.values(all).forEach((list) => {
+      (Array.isArray(list) ? list : []).forEach((c) => {
+        if (c && c.userId) seen[c.userId] = { id: c.userId, name: c.name || "Uporabnik", avatar: c.avatar || "" };
+      });
+    });
+  } catch (e) { /* ignore */ }
+  // lokalni profili (registrirani uporabniki v tem brskalniku)
+  try {
+    const arr = JSON.parse(localStorage.getItem("astronomski-utrinek-users-v1") || "[]");
+    (Array.isArray(arr) ? arr : []).forEach((u) => {
+      if (u && u.id) seen[u.id] = { id: u.id, name: u.name || "Uporabnik", avatar: u.avatar || "" };
+    });
+  } catch (e) { /* ignore */ }
+  return seen;
+}
+
+function renderUsersList() {
+  const ul = $("usersList");
+  if (!ul) return;
+  const users = collectKnownUsers();
+  const ids = Object.keys(users).sort();
+  if ($("usersListEmpty")) $("usersListEmpty").classList.toggle("hidden", ids.length > 0);
+  ul.innerHTML = ids.map((id) => userRowHtml(users[id])).join("");
+  ids.forEach((id) => attachUserEvents(id));
+}
+
+function userRowHtml(u) {
+  const r = getRoleForUser(u.id);
+  const banned = r.bannedUntil > Date.now();
+  const roleLabel = r.role === "admin" ? "Admin" : r.role === "moderator" ? "Moderator" : "Uporabnik";
+  const roleClass = r.role === "admin" ? "role-admin" : r.role === "moderator" ? "role-moderator" : "";
+  const banBadge = banned
+    ? `<span class="role-badge role-banned">⛔ Banan do ${formatDate(new Date(r.bannedUntil).toISOString())}</span>` : "";
+  const controls =
+    `<div class="user-controls">` +
+    (r.role !== "moderator" ? `<button class="btn-mini" data-action="moderator">→ Moderator</button>` : "") +
+    (r.role !== "admin" ? `<button class="btn-mini" data-action="admin">→ Admin</button>` : "") +
+    ((r.role === "admin" || r.role === "moderator") ? `<button class="btn-mini" data-action="demote">→ Uporabnik</button>` : "") +
+    (banned
+      ? `<button class="btn-mini" data-action="unban">Odban</button>`
+      : `<button class="btn-mini btn-ban" data-action="ban-1">⛔ 1 dan</button>` +
+        `<button class="btn-mini btn-ban" data-action="ban-7">⛔ 7 dni</button>` +
+        `<button class="btn-mini btn-ban" data-action="ban-30">⛔ 30 dni</button>`) +
+    `</div>`;
+  return `
+    <li class="user-item ${banned ? "is-banned" : ""}" data-uid="${escapeHtml(u.id)}">
+      <img class="user-avatar" src="${escapeHtml(u.avatar || "assets/filip-knez.jpg")}" alt="">
+      <div class="user-info">
+        <h5>${escapeHtml(u.name || "Uporabnik")}</h5>
+        <p><span class="role-badge ${roleClass}">${roleLabel}</span> ${banBadge}</p>
+      </div>
+      ${controls}
+    </li>`;
+}
+
+function attachUserEvents(id) {
+  const root = document.querySelector(`.user-item[data-uid="${id}"]`);
+  if (!root) return;
+  root.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const now = Date.now();
+      switch (btn.dataset.action) {
+        case "moderator": setUserRole(id, "moderator"); break;
+        case "admin": setUserRole(id, "admin"); break;
+        case "demote": setUserRole(id, "user"); break;
+        case "ban-1": setUserRole(id, undefined, now + 86400000); break;
+        case "ban-7": setUserRole(id, undefined, now + 7 * 86400000); break;
+        case "ban-30": setUserRole(id, undefined, now + 30 * 86400000); break;
+        case "unban": setUserRole(id, undefined, null); break;
+      }
+    });
+  });
+}
+
+function initUsersAdmin() {
+  if (!isAdmin()) return;
+  if (!$("usersList")) return;
+  renderUsersList();
+  window.addEventListener("au-auth", renderUsersList);
+  document.addEventListener("au-comments-change", renderUsersList);
 }
 
 function initAuthPage() {
@@ -1637,6 +1941,7 @@ async function init() {
   buildStarfield();
   initChrome();
   initSecretTrigger();
+  syncRolesFromCloud();
   await syncProfileFromCloud();
   await syncCategoriesFromCloud();
 
@@ -1649,9 +1954,11 @@ async function init() {
   if (PAGE === "admin") {
     initLogin();
     initAdmin();
+    initUsersAdmin();
     await syncFromCloud();
     await syncProfileFromCloud();
     await syncCategoriesFromCloud();
+    await syncRolesFromCloud();
     if (isAdmin()) openAdmin();
     else {
       showModal("loginModal");

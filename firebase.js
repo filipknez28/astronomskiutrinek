@@ -75,6 +75,27 @@ window.FB = (function () {
     );
   }
 
+  async function deleteComment(articleId, commentId) {
+    await req(
+      "comments/" + encodeURIComponent(articleId) + "/" + encodeURIComponent(commentId),
+      { method: "DELETE" }
+    );
+  }
+
+  /* ===== Vloge (moderator / admin) in začasni bani (po userId) ===== */
+  async function loadRoles() {
+    const data = await req("roles");
+    if (!data) return {};
+    return data;
+  }
+
+  async function saveRole(userId, roleObj) {
+    await req("roles/" + encodeURIComponent(userId), {
+      method: "PUT",
+      body: JSON.stringify(roleObj)
+    });
+  }
+
   async function saveUser(user) {
     if (!user || !user.id) return;
     await req("users/" + encodeURIComponent(user.id), {
@@ -127,6 +148,9 @@ window.FB = (function () {
     deleteArticle,
     loadComments,
     saveComment,
+    deleteComment,
+    loadRoles,
+    saveRole,
     saveUser,
     loadUserByEmail,
     loadSiteProfile,
