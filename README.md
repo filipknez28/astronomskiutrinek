@@ -1,23 +1,19 @@
-# Astronomski Utrinek
+# ✦ Astronomski Utrinek
 
 Sodobna spletna stran z astronomskimi novicami v slovenščini.
 
 ## Kaj stran omogoča
 
-- **Uredniške novice** — stran ne vleče tujega API-ja. Objavlja jih urednik
-  **Filip Knez** (profilna slika, byline, urejevalnik z slikami, povezavami in izrezom).
-- **Komentarji in računi** — obiskovalci si naredijo profil ali se prijavijo z Google
-  (`prijava.html`). Google Auth in Analytics sta vklopljena v `firebase-config.js`.
+- **Žive novice** — članke črpa iz [Spaceflight News API](https://spaceflightnewsapi.net) in
+  prikaže **Slika dneva** (NASA APOD) kot izpostavljeno novico. Brez internetne povezave
+  se prikaže lokalna zbirka člankov.
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
   in polje za iskanje po naslovih in vsebini.
-- **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
-  lahko mirno prelistaš. Ni overlaya in te ne odnese na tuj portal.
-- **O strani** — ločena stran (`o-strani.html`), ne razdelek na dnu domače.
-- **Novice** — arhiv na `novice.html`.
+- **Branje člankov** — klik na novico odpre celoten članek v pogovornem oknu.
 - **Skriti skrbniški meni** — sproži se z desetimi hitrimi dotiki na besedilo
   »Vse pravice pridržane« na dnu strani (brez kakršnekoli animacije ali povratne
-  informacije). Odpre se **celostranska** prijava (`admin.html`); po kodi
-  (`1237`) je uredništvo prav tako celostransko. Uredniški članki se
+  informacije). Odpre se poziv za vnos skrbniške kode (`123456789`); po pravilni kodi se
+  odpre skrbniški meni za pisanje, urejanje in brisanje člankov. Uredniški članki se
   shranijo lokalno v brskalnik in so takoj vidni na vrhu novice na strani.
 - **Firebase Realtime Database (testni način)** — če je nastavljen, so uredniški članki
   shranjeni v oblak in vidni vsem obiskovalcem (glej spodaj).
@@ -36,9 +32,9 @@ Realtime Database v testnem načinu postanejo vidni vsem obiskovalcem strani.
    `https://tvoj-projekt-default-rtdb.europe-west1.firebasedatabase.app`
 5. V datoteki **`firebase-config.js`** zamenjaj `VAS-PROJEKT` s svojim URL-jem baze.
 6. Znova naloži stran — v skrbniškem meniju se pokaže status:
-   **»Oblačna shramba (Firebase): povezano«**.
+   **»☁ Oblačna shramba (Firebase): povezano«**.
 
-**Trenutno nastavljena baza:**
+✅ **Trenutno nastavljena baza:**
 `https://astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app`
 
 Članki so shranjeni v bazi pod potjo `/articles/{id}`. Ni potreben noben API ključ —
@@ -58,31 +54,11 @@ podobna temu:
 }
 ```
 
-**Pomembno:** testni način dovoljuje branje in pisanje *vsem brez prijave* in
+⚠️ **Pomembno:** testni način dovoljuje branje in pisanje *vsem brez prijave* in
 samodejno poteče po približno 30 dneh (baza potem zavrne vse zahteve, dokler pravil
 ne posodobiš). Primeren je za razvoj in testiranje — za resno produkcijo bi dodali
 Firebase Authentication in strožja pravila. Podaljšaš ga tako, da v zavihku **Rules**
 zvišaš časovni žig in klikneš **Publish**.
-
-## Google prijava in Analytics
-
-V `firebase-config.js` je celotna konfiguracija spletne aplikacije.
-
-1. V Firebase konzoli odpri **Authentication → Sign-in method → Google** in vklopi ponudnika.
-2. Pod **Authentication → Settings → Authorized domains** dodaj:
-   `astronomskiutrinek.top` (in `www.astronomskiutrinek.top`, če ga uporabljaš).
-3. Analytics (`G-MC6BYYG33W`) se naloži prek `analytics.js` na javnih straneh.
-
-## SEO (astronomskiutrinek.top)
-
-- `robots.txt` in `sitemap.xml`
-- Open Graph / Twitter kartice in `canonical` na javnih straneh
-- JSON-LD (`NewsMediaOrganization`, `WebSite`, `NewsArticle`, `Person`)
-- `admin` in `prijava` sta `noindex`
-
-V [Google Search Console](https://search.google.com/search-console) dodaj lastnino
-`https://astronomskiutrinek.top`, preveri domeno in pošlji
-`https://astronomskiutrinek.top/sitemap.xml`.
 
 ## Zagon
 
@@ -101,21 +77,13 @@ npx serve .
 
 ## Struktura
 
-- `index.html` — naslovnica
-- `novice.html` — arhiv
-- `o-strani.html` — o uredništvu
-- `clanek.html` — članek
-- `prijava.html` — profil / Google
-- `admin.html` — uredništvo
-- `robots.txt`, `sitemap.xml`, `site.webmanifest` — SEO
-- `analytics.js` — Google Analytics 4
-- `styles.css` — videz
-- `app.js` — logika strani
+- `index.html` — struktura strani
+- `styles.css` — videz (temna vesoljska tema)
+- `app.js` — logika: viri novic, prikaz, skriti sprožilec, skrbniški meni
 - `firebase.js` — REST odjemalec za Firebase Realtime Database
-- `firebase-config.js` — Firebase in Analytics konfiguracija
+- `firebase-config.js` — tvoj URL baze (izpolni po navodilih zgoraj)
 - `assets/` — lokalne slike za začetne članke
 - `assets/aqw.png` — originalni logotip, prikazan v levem zgornjem kotu (temna podlaga se zlije s temno glavo)
 - `assets/logo-prosojen.png` — rezervna, prosojna verzija logotipa (shranjena za morebitno kasnejšo uporabo)
 - `assets/123456789.png` — prejšnji, uporabniško naloženi logotip (hranjen v repozitoriju)
-- `assets/filip-knez.jpg` — profilna slika urednika
-- `assets/favicon-*.png` — faviconi, izrezani iz logotipa `aqw.png`
+- `assets/favicon-*.png` — faviconi, generirani iz logotipa
