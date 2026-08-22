@@ -1310,6 +1310,7 @@ function initAdmin() {
     $("adminLogout").addEventListener("click", () => {
       sessionStorage.removeItem(SESSION_KEY);
       hideModal("adminPanel");
+      document.body.classList.remove("portal-open");
       showModal("loginModal");
       if ($("adminCode")) $("adminCode").focus();
     });

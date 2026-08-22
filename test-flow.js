@@ -536,6 +536,20 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   tap();
   check("Tap na sprožilec ne spremeni elementa (brez animacije)", trigger.getAttribute("style") === before);
 
+  // 11. Drsenje v portalu (zavihek Novice je najvišji)
+  const css = fs.readFileSync(path.join(__dirname, "styles.css"), "utf8");
+  check("Vsebina portala ima lasten drsnik",
+    /\.portal-scroll\s*\{[^}]*overflow-y:\s*auto/.test(css));
+  check("Vsebina portala se sme skrčiti (min-height: 0)",
+    /\.portal-scroll\s*\{[^}]*min-height:\s*0/.test(css) && /\.portal-main\s*\{[^}]*min-height:\s*0/.test(css));
+  check("Mreža portala dovoli krčenje stolpcev",
+    css.includes("grid-template-columns: 254px minmax(0, 1fr)") &&
+    css.includes("grid-template-columns: 300px minmax(0, 1fr)"));
+  check("Seznam člankov v portalu ne lovi drsenja",
+    /\.portal-panel \.admin-list,\s*\.portal-panel \.cat-list \{[^}]*max-height:\s*none/.test(css));
+  check("Razdelek Novice ni obrezan (overflow: visible)",
+    /\.portal-panel \.admin-layout \{[^}]*overflow:\s*visible/.test(css));
+
   console.log(`\nRezultat: ${pass} opravljenih, ${fail} neuspešnih`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error("Napaka v testu:", e); process.exit(1); });
