@@ -22,6 +22,7 @@ function makeFB() {
     },
     isConfigured: () => true,
     comments: {},
+    roles: {},
     async loadArticles() { return Object.values(this.cloud); },
     async saveArticle(a) { this.cloud[a.id] = { ...a }; },
     async deleteArticle(id) { delete this.cloud[id]; },
@@ -30,6 +31,11 @@ function makeFB() {
       this.comments[articleId] = this.comments[articleId] || {};
       this.comments[articleId][c.id] = { ...c };
     },
+    async deleteComment(articleId, id) {
+      if (this.comments[articleId]) delete this.comments[articleId][id];
+    },
+    async loadRoles() { return { ...this.roles }; },
+    async saveRole(id, obj) { this.roles[id] = { ...obj }; },
     async saveUser() {}
   };
 }
@@ -220,6 +226,83 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Odstavki so izpisani", artWin.document.querySelectorAll("#articleModalContent p").length === 2);
   check("Članek je celostranski, ne overlay", artWin.document.body.dataset.page === "article" && !artWin.document.querySelector(".modal-backdrop"));
   check("Na članku so komentarji", !!artWin.document.getElementById("commentsBox"));
+
+  // 6b. Komentarji: prijava, objava, odgovor, urejanje lastnega komentarja
+  await artWin.AUAuth.register({ name: "Zvezda", email: "zvezda@test.si", password: "geslo123" });
+  await tick(40);
+  check("Prijavljen uporabnik lahko komentira",
+    !artWin.document.getElementById("commentForm").classList.contains("hidden"));
+  artWin.document.getElementById("commentText").value = "Prvi komentar Zvezde";
+  artWin.document.getElementById("commentForm").dispatchEvent(new artWin.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  await tick(60);
+  check("Komentar se prikaže v seznamu",
+    artWin.document.getElementById("commentList").textContent.includes("Prvi komentar Zvezde"));
+  const zvezdinComment = artWin.document.querySelector(".comment[data-cid]");
+  const cid = zvezdinComment.dataset.cid;
+  check("Na komentarju je gumb za odgovor", !!zvezdinComment.querySelector(`[data-reply]`));
+  zvezdinComment.querySelector(`[data-reply]`).click();
+  await tick(30);
+  check("Odgovor odpre vnosno polje", !!artWin.document.getElementById("replyArea-" + cid));
+  artWin.document.getElementById("replyArea-" + cid).value = "Odgovor na Zvezdin komentar";
+  artWin.document.getElementById("replyForm-" + cid).dispatchEvent(new artWin.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  await tick(60);
+  check("Odgovor se prikaže kot vgnezdeni komentar",
+    artWin.document.querySelectorAll(".comment.is-reply").length > 0 &&
+    artWin.document.getElementById("commentList").textContent.includes("Odgovor na Zvezdin komentar"));
+  // urejanje lastnega komentarja
+  zvezdinComment.querySelector(`[data-edit]`).click();
+  await tick(30);
+  artWin.document.getElementById("editArea-" + cid).value = "Zvezdin urejen komentar";
+  artWin.document.getElementById("editSave-" + cid).click();
+  await tick(60);
+  check("Uporabnik uredi svoj komentar",
+    artWin.document.getElementById("commentList").textContent.includes("Zvezdin urejen komentar"));
+  check("Urejen komentar je označen kot 'urejeno'",
+    artWin.document.getElementById("commentList").textContent.includes("(urejeno)"));
+
+  // 6c. Vloge in bani: lastnik poviša v moderatorja/admina in začasno banira
+  const roleAdmin = boot("admin.html", "http://localhost/admin.html", {
+    FB,
+    storage: { local: dumpStorage(artWin).local, session: { "astronomski-utrinek-admin": "1" } },
+    nav: { url: "" }
+  });
+  await tick(100);
+  check("Lastnik vidi seznam uporabnikov", !!roleAdmin.document.getElementById("usersList"));
+  check("Zvezda je v seznamu uporabnikov",
+    roleAdmin.document.getElementById("usersList").textContent.includes("Zvezda"));
+  const uid = roleAdmin.document.querySelector(".user-item[data-uid]").dataset.uid;
+  let row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
+  row.querySelector('[data-action="moderator"]').click();
+  await tick(30);
+  check("Lastnik poviša Zvezdo v moderatorja",
+    FB.roles[uid] && FB.roles[uid].role === "moderator" &&
+    roleAdmin.document.getElementById("usersList").textContent.includes("Moderator"));
+  row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
+  row.querySelector('[data-action="ban-7"]').click();
+  await tick(30);
+  check("Lastnik začasno banira Zvezdo",
+    FB.roles[uid] && FB.roles[uid].bannedUntil > Date.now() &&
+    roleAdmin.document.getElementById("usersList").textContent.includes("Banan"));
+  // banan uporabnik (še z veljavno prijavo) ne more več komentirati
+  const bannedArt = boot("clanek.html", "http://localhost/" + articleNav.url, {
+    FB,
+    storage: dumpStorage(artWin),
+    nav: { url: "" }
+  });
+  await tick(200);
+  check("Banan uporabnik ne more komentirati",
+    bannedArt.document.getElementById("commentForm").classList.contains("hidden") &&
+    bannedArt.document.getElementById("commentGate").textContent.includes("banani"));
+  row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
+  row.querySelector('[data-action="unban"]').click();
+  await tick(30);
+  check("Preklic bana ponastavi bannedUntil", !FB.roles[uid].bannedUntil);
+  row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
+  row.querySelector('[data-action="admin"]').click();
+  await tick(30);
+  check("Lastnik poviša Zvezdo v admina",
+    FB.roles[uid] && FB.roles[uid].role === "admin" &&
+    roleAdmin.document.getElementById("usersList").textContent.includes("Admin"));
 
   // 7. Urejanje iz admin panela
   adminWin.document.querySelector(".admin-list-item").click();

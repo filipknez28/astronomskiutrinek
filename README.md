@@ -8,6 +8,12 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
   **Filip Knez** (profilna slika, byline, urejevalnik z slikami, povezavami in izrezom).
 - **Komentarji in računi** — obiskovalci si naredijo profil ali se prijavijo z Google
   (`prijava.html`). Google Auth in Analytics sta vklopljena v `firebase-config.js`.
+  Prijavljeni uporabniki **komentirajo, odgovarjajo** na komentarje in **urejajo/brišejo
+  svoje komentarje**.
+- **Vloge (moderator / admin) in začasni bani** — urednik (kdo vnese kodo `1237`) lahko v
+  skrbniškem meniju poviša uporabnike v **moderatorje** (urejajo in brišejo poljubne
+  komentarje) ali **admini** (poleg tega urejajo članke) ter jih **začasno banira**
+  (1 / 7 / 30 dni) ali prekliče ban. Banan uporabnik ne more več komentirati.
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
   in polje za iskanje po naslovih in vsebini.
 - **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
@@ -41,8 +47,15 @@ Realtime Database v testnem načinu postanejo vidni vsem obiskovalcem strani.
 **Trenutno nastavljena baza:**
 `https://astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app`
 
-Članki so shranjeni v bazi pod potjo `/articles/{id}`. Ni potreben noben API ključ —
-stran uporablja REST API brez SDK-ja (`firebase.js`).
+Podatki so shranjeni v bazi pod temi potmi:
+
+- `/articles/{id}` — uredniški članki
+- `/comments/{articleId}/{commentId}` — komentarji (vključno z odgovori)
+- `/roles/{userId}` — vloge uporabnikov (`role`: `user` / `moderator` / `admin`) in
+  `bannedUntil` (časovni žig do katerega je uporabnik začasno banan)
+- `/users/{id}` in `/usersByEmail/{key}` — profili uporabnikov
+
+Ni potreben noben API ključ — stran uporablja REST API brez SDK-ja (`firebase.js`).
 
 ### Pravila (Rules) v testnem načinu
 
