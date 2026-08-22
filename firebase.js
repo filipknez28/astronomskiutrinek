@@ -140,6 +140,22 @@ window.FB = (function () {
     }
   }
 
+  /* Izbriši uporabnika (profil in vpis po e-naslovu) */
+  async function deleteUser(userId, email) {
+    if (!userId) return;
+    await req("users/" + encodeURIComponent(userId), { method: "DELETE" });
+    if (email) {
+      const key = encodeURIComponent(String(email).toLowerCase().replace(/\./g, ","));
+      await req("usersByEmail/" + key, { method: "DELETE" });
+    }
+  }
+
+  /* Izbriši vlogo / ban uporabnika */
+  async function deleteRole(userId) {
+    if (!userId) return;
+    await req("roles/" + encodeURIComponent(userId), { method: "DELETE" });
+  }
+
   async function loadUserByEmail(email) {
     const key = encodeURIComponent(String(email || "").toLowerCase().replace(/\./g, ","));
     if (!key) return null;
@@ -184,6 +200,8 @@ window.FB = (function () {
     loadRoles,
     saveRole,
     saveUser,
+    deleteUser,
+    deleteRole,
     loadUserByEmail,
     loadSiteProfile,
     saveSiteProfile,

@@ -1678,3 +1678,7 @@ body.portal-open { overflow: hidden; }
 .comment-btn .ico { width: 15px; height: 15px; vertical-align: -0.2em; }
 .comment-delete { color: var(--danger); }
 .u-place { display: block; color: var(--muted); font-size: 0.77rem; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer-danger { border-top: 1px solid var(--line); padding-top: 14px; }
+.drawer-danger .modal-sub { font-size: 0.78rem; margin-bottom: 10px; }
+.drawer-danger .btn { display: inline-flex; align-items: center; gap: 7px; }
+.drawer-danger .ico { width: 15px; height: 15px; }

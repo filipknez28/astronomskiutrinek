@@ -2552,6 +2552,12 @@ function openUserDrawer(id) {
       <div class="drawer-links">${links.slice(0, 8).map((c) => `<a class="c-link" href="${escapeHtml(c.link)}" target="_blank" rel="noopener nofollow">${ICO("link")}${escapeHtml(c.link.replace(/^https?:\/\//, "").slice(0, 42))}</a>`).join("")}</div>
     </div>` : ""}
 
+    <div class="drawer-section drawer-danger">
+      <h3>${ICO("trash")} Izbriši uporabnika</h3>
+      <p class="modal-sub">Odstrani profil, vlogo in vse komentarje tega uporabnika — tudi iz oblačne shrambe.</p>
+      <button class="btn btn-danger-ghost btn-small" type="button" id="deleteUserBtn">${ICO("trash")} Izbriši uporabnika</button>
+    </div>
+
     <div class="drawer-section">
       <h3>${ICO("quote")} Komentarji</h3>
       <div class="mini-list">
@@ -2569,6 +2575,7 @@ function openUserDrawer(id) {
   drawer.classList.remove("hidden");
   drawer.setAttribute("aria-hidden", "false");
   $("drawerClose").addEventListener("click", closeUserDrawer);
+  if ($("deleteUserBtn")) $("deleteUserBtn").addEventListener("click", () => { deleteUserAccount(u); });
   drawer.querySelectorAll("[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const now = Date.now();
@@ -2584,6 +2591,55 @@ function openUserDrawer(id) {
       openUserDrawer(u.id);
     });
   });
+}
+
+/* Popolnoma odstrani uporabnika: profil, vlogo in vse njegove komentarje */
+async function deleteUserAccount(user) {
+  if (!user || !user.id) return;
+  const st = statsForUser(user.id);
+  const msg = st.comments
+    ? `Izbrišem uporabnika »${user.name || "Uporabnik"}«?\n\nOdstranjeni bodo njegov profil in ${st.comments} ${st.comments === 1 ? "komentar" : "komentarjev"} (tudi iz oblaka). Tega ni mogoče razveljaviti.`
+    : `Izbrišem uporabnika »${user.name || "Uporabnik"}«?\n\nProfil bo odstranjen tudi iz oblaka. Tega ni mogoče razveljaviti.`;
+  if (!confirm(msg)) return;
+
+  // 1) njegovi komentarji (lokalno + oblak)
+  const mine = portalComments.filter((c) => c.userId === user.id);
+  const byArticle = {};
+  mine.forEach((c) => { (byArticle[c.articleId] = byArticle[c.articleId] || []).push(c); });
+  Object.entries(byArticle).forEach(([articleId, list]) => {
+    const ids = new Set(list.map((c) => c.id));
+    const keep = loadLocalComments(articleId).filter((c) => !ids.has(c.id) && !ids.has(c.parentId));
+    saveLocalComments(articleId, keep);
+  });
+  portalComments = portalComments.filter((c) => c.userId !== user.id && !mine.some((m) => m.id === c.parentId));
+
+  // 2) profil in vloga
+  portalUsers = portalUsers.filter((u) => u.id !== user.id);
+  delete roles[user.id];
+  saveLocalRoles();
+  try {
+    const arr = JSON.parse(localStorage.getItem("astronomski-utrinek-users-v1") || "[]");
+    localStorage.setItem(
+      "astronomski-utrinek-users-v1",
+      JSON.stringify((Array.isArray(arr) ? arr : []).filter((u) => u.id !== user.id))
+    );
+  } catch (e) { /* ignore */ }
+
+  closeUserDrawer();
+  renderPortal();
+
+  // 3) oblak
+  if (fbReady()) {
+    try {
+      for (const c of mine) {
+        if (FB.deleteComment) await FB.deleteComment(c.articleId, c.id);
+      }
+      if (FB.deleteRole) await FB.deleteRole(user.id);
+      if (FB.deleteUser) await FB.deleteUser(user.id, user.email);
+      setCloudStatus("online");
+    } catch (e) { setCloudStatus("offline"); }
+  }
+  await refreshPortal();
 }
 
 function closeUserDrawer() {

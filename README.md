@@ -108,7 +108,7 @@ navigacijo in petimi razdelki:
 | **Pregled** | Statistika skupnosti (uporabniki, komentarji, slike in povezave), zadnji komentarji, novi uporabniki in razdelitev bralcev po državah. |
 | **Novice** | Pisanje, urejanje, osnutki, načrtovane objave in kategorije (kot doslej). |
 | **Komentarji** | Vse niti z vseh člankov, iskanje in filtri (brez odgovora, s sliko ali povezavo, uradni odgovori) ter polje za takojšen **uradni odgovor uredništva**. |
-| **Uporabniki** | Kartice bralcev z avatarjem, e-naslovom in števci komentarjev, slik in povezav; klik odpre predal s profilom, galerijo, povezavami, komentarji ter gumbi za vloge in bane. |
+| **Uporabniki** | Kartice bralcev z avatarjem, e-naslovom in števci komentarjev, slik in povezav; klik odpre predal s profilom, galerijo, povezavami, komentarji ter gumbi za vloge, bane in **izbris uporabnika** (profil, vloga in vsi njegovi komentarji, tudi v oblaku). |
 | **Moj profil** | Službeni profil (ime, slika, naziv), statistika uradnih odgovorov, pregled odgovorov in razdelek skupnosti. |
 
 ### Uradni odgovori

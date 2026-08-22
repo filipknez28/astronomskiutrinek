@@ -44,6 +44,8 @@ function makeFB() {
       return out;
     },
     async loadUsers() { return Object.values(this.users || {}); },
+    async deleteUser(id) { if (this.users) delete this.users[id]; },
+    async deleteRole(id) { delete this.roles[id]; },
     users: {},
     async loadRoles() { return { ...this.roles }; },
     async saveRole(id, obj) { this.roles[id] = { ...obj }; },
@@ -535,6 +537,36 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   const before = trigger.getAttribute("style");
   tap();
   check("Tap na sprožilec ne spremeni elementa (brez animacije)", trigger.getAttribute("style") === before);
+
+  // 10c. Brisanje uporabnika iz portala
+  FB.users["u-brisi"] = { id: "u-brisi", name: "Za brisanje", email: "brisi@test.si", avatar: "" };
+  FB.roles["u-brisi"] = { role: "moderator", bannedUntil: null };
+  FB.comments["cloud-1"] = {
+    "c-brisi": { id: "c-brisi", name: "Za brisanje", userId: "u-brisi", text: "Komentar za brisanje", date: new Date().toISOString() }
+  };
+  const delWin = boot("admin.html", "http://localhost/admin.html", {
+    FB, storage: { local: {}, session: { "astronomski-utrinek-admin": "1" } }, nav: { url: "" }
+  });
+  await tick(250);
+  delWin.document.querySelector('.portal-nav-btn[data-tab="users"]').click();
+  await tick(60);
+  const delCard = [...delWin.document.querySelectorAll("#usersList .user-card")]
+    .find((c) => c.dataset.uid === "u-brisi");
+  check("Uporabnik je viden v portalu pred brisanjem", !!delCard);
+  const delUid = delCard.dataset.uid;
+  const commentsBefore = Object.values(FB.comments).flatMap((l) => Object.values(l)).filter((c) => c.userId === delUid).length;
+  check("Uporabnik ima komentarje v oblaku", commentsBefore > 0);
+  delCard.click();
+  await tick(40);
+  check("Predal ponuja brisanje uporabnika", !!delWin.document.getElementById("deleteUserBtn"));
+  delWin.document.getElementById("deleteUserBtn").click();
+  await tick(250);
+  check("Uporabnik izgine iz seznama",
+    !delWin.document.querySelector('.user-card[data-uid="' + delUid + '"]'));
+  check("Uporabnik je izbrisan iz oblaka", !FB.users[delUid]);
+  check("Vloga uporabnika je izbrisana", !FB.roles[delUid]);
+  check("Komentarji izbrisanega uporabnika izginejo iz oblaka",
+    Object.values(FB.comments).flatMap((l) => Object.values(l)).filter((c) => c.userId === delUid).length === 0);
 
   // 11. Drsenje v portalu (zavihek Novice je najvišji)
   const css = fs.readFileSync(path.join(__dirname, "styles.css"), "utf8");
