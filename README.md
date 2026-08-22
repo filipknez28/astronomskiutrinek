@@ -97,6 +97,32 @@ V [Google Search Console](https://search.google.com/search-console) dodaj lastni
 `https://astronomskiutrinek.top`, preveri domeno in pošlji
 `https://astronomskiutrinek.top/sitemap.xml`.
 
+
+## Skrbniški portal (celozaslonski overlay)
+
+Po vnosu skrbniške kode na `admin.html` se čez celo stran odpre portal s stransko
+navigacijo in petimi razdelki:
+
+| Razdelek | Kaj omogoča |
+| --- | --- |
+| **Pregled** | Statistika skupnosti (uporabniki, komentarji, slike in povezave), zadnji komentarji, novi uporabniki in razdelitev bralcev po državah. |
+| **Novice** | Pisanje, urejanje, osnutki, načrtovane objave in kategorije (kot doslej). |
+| **Komentarji** | Vse niti z vseh člankov, iskanje in filtri (brez odgovora, s sliko ali povezavo, uradni odgovori) ter polje za takojšen **uradni odgovor uredništva**. |
+| **Uporabniki** | Kartice bralcev z avatarjem, približno lokacijo in števci komentarjev, slik in povezav; klik odpre predal s profilom, galerijo, povezavami, komentarji ter gumbi za vloge in bane. |
+| **Moj profil** | Službeni profil (ime, slika, naziv), statistika uradnih odgovorov, pregled odgovorov in razdelek skupnosti. |
+
+### Uradni odgovori
+
+Lastnik in admini imajo pod komentarji stikalo **»Objavi kot uredništvo«**. Tak
+komentar dobi modro značko s službenim imenom in je posebej označen tudi bralcem.
+Privzeto je vklopljeno le, kadar ni prijavljenega bralskega računa.
+
+### Komentarji s sliko in povezavo
+
+Bralci lahko komentarju priložijo sliko (povezava ali datoteka, ki se stisne v
+brskalniku) in povezavo. Ob objavi se shrani še približna lokacija (mesto in država
+prek javnega IP-servisa), ki jo uredništvo vidi v razdelku Uporabniki.
+
 ## Zagon
 
 Stran je statična (HTML + CSS + JS), zato jo lahko odpreš neposredno ali jo postrežeš

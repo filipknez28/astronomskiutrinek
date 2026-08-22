@@ -55,28 +55,77 @@
       </div>
     </section>
 
-    <section id="adminPanel" class="admin admin-page hidden" aria-hidden="true">
-      <div class="container">
-        <div class="admin-card">
-          <header class="admin-header">
-            <div class="editor-profile">
-              <img id="profileAvatar" class="profile-avatar" src="assets/filip-knez.jpg" alt="Filip Knez" />
-              <div>
-                <p class="profile-name" id="profileName">Filip Knez</p>
-                <p class="modal-sub">Urednik · Astronomski Utrinek</p>
-                <p class="admin-cloud-status" id="cloudStatus" aria-live="polite"></p>
-              </div>
-              <label class="btn btn-small profile-photo-btn">
-                Zamenjaj sliko
-                <input type="file" id="profilePhoto" accept="image/*" hidden />
-              </label>
+    <section id="adminPanel" class="portal hidden" aria-hidden="true">
+      <div class="portal-shell" role="dialog" aria-modal="true" aria-label="Skrbniški portal">
+
+        <aside class="portal-rail">
+          <div class="portal-rail-brand">
+            <span class="portal-rail-logo"><img src="assets/mark.png" alt="" /></span>
+            <div>
+              <strong>Utrinek</strong>
+              <span>Skrbniški portal</span>
             </div>
-            <div class="admin-header-actions">
-              <a class="btn btn-ghost" id="adminClose" href="index.html">Na stran</a>
-              <button class="btn btn-danger-ghost" id="adminLogout">Odjava</button>
+          </div>
+
+          <nav class="portal-nav" aria-label="Razdelki portala">
+            <button class="portal-nav-btn is-active" data-tab="dashboard" type="button"><span class="pn-ico" data-ico="orbit"></span><span class="pn-label">Pregled</span></button>
+            <button class="portal-nav-btn" data-tab="articles" type="button"><span class="pn-ico" data-ico="list"></span><span class="pn-label">Novice</span><em class="pn-count" id="navCountArticles">0</em></button>
+            <button class="portal-nav-btn" data-tab="comments" type="button"><span class="pn-ico" data-ico="quote"></span><span class="pn-label">Komentarji</span><em class="pn-count" id="navCountComments">0</em></button>
+            <button class="portal-nav-btn" data-tab="users" type="button"><span class="pn-ico" data-ico="grid"></span><span class="pn-label">Uporabniki</span><em class="pn-count" id="navCountUsers">0</em></button>
+            <button class="portal-nav-btn" data-tab="profile" type="button"><span class="pn-ico" data-ico="star"></span><span class="pn-label">Moj profil</span></button>
+          </nav>
+
+          <div class="portal-rail-foot">
+            <p class="admin-cloud-status" id="cloudStatus" aria-live="polite"></p>
+            <a class="btn btn-ghost btn-small" id="adminClose" href="index.html">Na stran</a>
+            <button class="btn btn-danger-ghost btn-small" id="adminLogout" type="button">Odjava</button>
+          </div>
+        </aside>
+
+        <div class="portal-main">
+          <header class="portal-topbar">
+            <div>
+              <p class="portal-eyebrow" id="portalEyebrow">Skrbniški portal</p>
+              <h1 id="portalTitle">Pregled</h1>
+            </div>
+            <div class="portal-topbar-actions">
+              <span class="portal-identity">
+                <img id="portalIdentityAvatar" src="assets/filip-knez.jpg" alt="" />
+                <span id="portalIdentityName">Filip Knez</span>
+                <span class="verified-chip" title="Uradni profil uredništva"><span class="pn-ico" data-ico="star"></span>Uradni</span>
+              </span>
             </div>
           </header>
 
+          <div class="portal-scroll">
+
+            <!-- Pregled -->
+            <section class="portal-panel is-active" data-panel="dashboard">
+              <div class="stat-grid" id="statGrid"></div>
+              <div class="split-grid">
+                <div class="glass-card">
+                  <div class="card-head">
+                    <h2><span class="pn-ico" data-ico="quote"></span> Zadnji komentarji</h2>
+                    <button class="link-btn" type="button" data-goto="comments">Vsi →</button>
+                  </div>
+                  <div id="dashComments" class="mini-list"></div>
+                </div>
+                <div class="glass-card">
+                  <div class="card-head">
+                    <h2><span class="pn-ico" data-ico="grid"></span> Novi uporabniki</h2>
+                    <button class="link-btn" type="button" data-goto="users">Vsi →</button>
+                  </div>
+                  <div id="dashUsers" class="mini-list"></div>
+                </div>
+              </div>
+              <div class="glass-card">
+                <div class="card-head"><h2><span class="pn-ico" data-ico="planet"></span> Od kod so obiskovalci</h2></div>
+                <div id="dashPlaces" class="place-grid"></div>
+              </div>
+            </section>
+
+            <!-- Novice -->
+            <section class="portal-panel" data-panel="articles">
           <div class="admin-layout">
             <aside class="admin-side">
               <div class="admin-side-head">
@@ -182,23 +231,104 @@
               </form>
             </section>
           </div>
+            </section>
 
-          <section class="users-admin" id="usersAdmin">
-            <div class="users-head">
-              <h2>👥 Uporabniki in vloge</h2>
-              <p class="modal-sub">
-                Povišajte uporabnike v <strong>moderatorje</strong> (urejajo in brišejo komentarje),
-                v <strong>admini</strong> (poleg tega urejajo članke) ali jih <strong>začasno banajte</strong>.
+            <!-- Komentarji -->
+            <section class="portal-panel" data-panel="comments">
+              <div class="toolbar">
+                <div class="search-wrap">
+                  <span class="pn-ico" data-ico="search"></span>
+                  <input type="search" id="commentSearch" class="text-input" placeholder="Išči po komentarjih, uporabnikih, novicah…" />
+                </div>
+                <div class="segmented" id="commentFilter">
+                  <button class="seg is-active" type="button" data-cfilter="all">Vsi</button>
+                  <button class="seg" type="button" data-cfilter="unanswered">Brez odgovora</button>
+                  <button class="seg" type="button" data-cfilter="media">S sliko ali povezavo</button>
+                  <button class="seg" type="button" data-cfilter="official">Uradni odgovori</button>
+                </div>
+              </div>
+              <div id="adminComments" class="thread-list"></div>
+              <p id="adminCommentsEmpty" class="admin-empty hidden">Ni komentarjev za izbrani pogled.</p>
+            </section>
+
+            <!-- Uporabniki -->
+            <section class="portal-panel" data-panel="users">
+              <div class="users-head">
+                <h2>Uporabniki in vloge</h2>
+                <p class="modal-sub">
+                  Poglej, kdo so bralci, od kod prihajajo in kaj so delili. Klik na kartico odpre profil,
+                  kjer jih lahko povišaš v <strong>moderatorje</strong> ali <strong>admine</strong> oziroma začasno banaš.
+                </p>
+              </div>
+              <div class="toolbar">
+                <div class="search-wrap">
+                  <span class="pn-ico" data-ico="search"></span>
+                  <input type="search" id="userSearch" class="text-input" placeholder="Išči po imenu, mestu ali državi…" />
+                </div>
+                <div class="segmented" id="userSort">
+                  <button class="seg is-active" type="button" data-usort="recent">Nedavni</button>
+                  <button class="seg" type="button" data-usort="active">Najbolj dejavni</button>
+                  <button class="seg" type="button" data-usort="media">Z mediji</button>
+                </div>
+              </div>
+              <ul id="usersList" class="user-grid"></ul>
+              <p id="usersListEmpty" class="admin-empty hidden">
+                Ni še uporabnikov. Pojavijo se, ko kdo komentira ali se registrira.
               </p>
-            </div>
-            <ul id="usersList" class="users-list"></ul>
-            <p id="usersListEmpty" class="admin-empty hidden">
-              Ni še uporabnikov. Pojavijo se, ko kdo komentira ali se registrira.
-            </p>
-          </section>
+            </section>
+
+            <!-- Moj profil -->
+            <section class="portal-panel" data-panel="profile">
+              <div class="profile-hero glass-card">
+                <div class="profile-hero-main">
+                  <img id="profileAvatar" class="profile-avatar" src="assets/filip-knez.jpg" alt="Filip Knez" />
+                  <div>
+                    <h2 class="profile-name-row">
+                      <span id="profileName">Filip Knez</span>
+                      <span class="verified-chip"><span class="pn-ico" data-ico="star"></span>Uradni profil</span>
+                    </h2>
+                    <p class="modal-sub" id="profileRoleOut">Urednik · Astronomski Utrinek</p>
+                    <div class="profile-actions">
+                      <label class="btn btn-small profile-photo-btn">
+                        Zamenjaj sliko
+                        <input type="file" id="profilePhoto" accept="image/*" hidden />
+                      </label>
+                      <button class="btn btn-ghost btn-small" type="button" id="editNameBtn">Preimenuj</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="profile-hero-stats" id="profileStats"></div>
+              </div>
+
+              <div class="split-grid">
+                <div class="glass-card">
+                  <div class="card-head"><h2><span class="pn-ico" data-ico="quote"></span> Moji uradni odgovori</h2></div>
+                  <div id="profileReplies" class="mini-list"></div>
+                </div>
+                <div class="glass-card">
+                  <div class="card-head"><h2><span class="pn-ico" data-ico="planet"></span> Kje so bralci</h2></div>
+                  <div id="profilePlaces" class="place-grid"></div>
+                </div>
+              </div>
+
+              <div class="glass-card">
+                <div class="card-head">
+                  <h2><span class="pn-ico" data-ico="grid"></span> Skupnost</h2>
+                  <button class="link-btn" type="button" data-goto="users">Odpri vse uporabnike →</button>
+                </div>
+                <div id="profileUsers" class="user-grid user-grid-compact"></div>
+              </div>
+            </section>
+
+          </div>
         </div>
+
+        <aside id="userDrawer" class="user-drawer hidden" aria-hidden="true">
+          <div class="user-drawer-inner" id="userDrawerInner"></div>
+        </aside>
       </div>
     </section>
+
   </main>
 
   <footer class="site-footer">

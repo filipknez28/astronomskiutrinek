@@ -5,6 +5,7 @@ const { JSDOM } = require("jsdom");
 
 const appJs = fs.readFileSync(path.join(__dirname, "app.js"), "utf8");
 const authJs = fs.readFileSync(path.join(__dirname, "auth.js"), "utf8");
+const iconsJs = fs.readFileSync(path.join(__dirname, "icons.js"), "utf8");
 
 function makeFB() {
   return {
@@ -34,9 +35,18 @@ function makeFB() {
     async deleteComment(articleId, id) {
       if (this.comments[articleId]) delete this.comments[articleId][id];
     },
+    async loadAllComments() {
+      const out = [];
+      Object.entries(this.comments).forEach(([articleId, list]) => {
+        Object.entries(list || {}).forEach(([id, c]) => out.push({ ...c, id, articleId }));
+      });
+      return out;
+    },
+    async loadUsers() { return Object.values(this.users || {}); },
+    users: {},
     async loadRoles() { return { ...this.roles }; },
     async saveRole(id, obj) { this.roles[id] = { ...obj }; },
-    async saveUser() {}
+    async saveUser(u) { this.users = this.users || {}; if (u && u.id) this.users[u.id] = { ...u }; }
   };
 }
 
@@ -67,6 +77,7 @@ function boot(htmlFile, url, { FB, storage, nav } = {}) {
     Object.entries(storage.local || {}).forEach(([k, v]) => window.localStorage.setItem(k, v));
     Object.entries(storage.session || {}).forEach(([k, v]) => window.sessionStorage.setItem(k, v));
   }
+  window.eval(iconsJs);
   window.eval(authJs);
   window.eval(appJs);
   return window;
@@ -237,6 +248,21 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   await tick(60);
   check("Komentar se prikaže v seznamu",
     artWin.document.getElementById("commentList").textContent.includes("Prvi komentar Zvezde"));
+
+  // 6b-2: komentar s priloženo sliko in povezavo
+  check("Pod člankom je gumb za sliko ali povezavo", !!artWin.document.getElementById("toggleExtras"));
+  artWin.document.getElementById("toggleExtras").click();
+  check("Polji za sliko in povezavo se odpreta",
+    !artWin.document.getElementById("commentExtras").classList.contains("hidden"));
+  artWin.document.getElementById("commentText").value = "Moj posnetek kometa";
+  artWin.document.getElementById("commentImage").value = "https://primer.si/komet.jpg";
+  artWin.document.getElementById("commentLink").value = "https://primer.si/vir";
+  artWin.document.getElementById("commentForm").dispatchEvent(new artWin.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  await tick(80);
+  check("Komentar prikaže priloženo sliko",
+    !!artWin.document.querySelector("#commentList .comment-media img"));
+  check("Komentar prikaže priloženo povezavo",
+    !!artWin.document.querySelector("#commentList .comment-media .c-link"));
   const zvezdinComment = artWin.document.querySelector(".comment[data-cid]");
   const cid = zvezdinComment.dataset.cid;
   check("Na komentarju je gumb za odgovor", !!zvezdinComment.querySelector(`[data-reply]`));
@@ -270,15 +296,21 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Lastnik vidi seznam uporabnikov", !!roleAdmin.document.getElementById("usersList"));
   check("Zvezda je v seznamu uporabnikov",
     roleAdmin.document.getElementById("usersList").textContent.includes("Zvezda"));
-  const uid = roleAdmin.document.querySelector(".user-item[data-uid]").dataset.uid;
-  let row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
-  row.querySelector('[data-action="moderator"]').click();
+  const openDrawer = (uid) => {
+    roleAdmin.document.querySelector('.user-card[data-uid="' + uid + '"]').click();
+    return roleAdmin.document.getElementById("userDrawer");
+  };
+  const uid = roleAdmin.document.querySelector(".user-card[data-uid]").dataset.uid;
+  let drawer = openDrawer(uid);
+  check("Klik na uporabnika odpre predal s profilom",
+    !drawer.classList.contains("hidden") && drawer.textContent.includes("Zvezda"));
+  drawer.querySelector('[data-action="moderator"]').click();
   await tick(30);
   check("Lastnik poviša Zvezdo v moderatorja",
     FB.roles[uid] && FB.roles[uid].role === "moderator" &&
     roleAdmin.document.getElementById("usersList").textContent.includes("Moderator"));
-  row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
-  row.querySelector('[data-action="ban-7"]').click();
+  drawer = openDrawer(uid);
+  drawer.querySelector('[data-action="ban-7"]').click();
   await tick(30);
   check("Lastnik začasno banira Zvezdo",
     FB.roles[uid] && FB.roles[uid].bannedUntil > Date.now() &&
@@ -293,16 +325,89 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Banan uporabnik ne more komentirati",
     bannedArt.document.getElementById("commentForm").classList.contains("hidden") &&
     bannedArt.document.getElementById("commentGate").textContent.includes("banani"));
-  row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
-  row.querySelector('[data-action="unban"]').click();
+  drawer = openDrawer(uid);
+  drawer.querySelector('[data-action="unban"]').click();
   await tick(30);
   check("Preklic bana ponastavi bannedUntil", !FB.roles[uid].bannedUntil);
-  row = roleAdmin.document.querySelector('.user-item[data-uid="' + uid + '"]');
-  row.querySelector('[data-action="admin"]').click();
+  drawer = openDrawer(uid);
+  drawer.querySelector('[data-action="admin"]').click();
   await tick(30);
   check("Lastnik poviša Zvezdo v admina",
     FB.roles[uid] && FB.roles[uid].role === "admin" &&
     roleAdmin.document.getElementById("usersList").textContent.includes("Admin"));
+
+
+  // ===== Skrbniški portal: overlay, zavihki, uradni odgovori, uporabniki =====
+  const panel = roleAdmin.document.getElementById("adminPanel");
+  check("Skrbniški portal je celozaslonski overlay",
+    panel.classList.contains("portal") && !panel.classList.contains("hidden"));
+  check("Portal ima stransko navigacijo s petimi zavihki",
+    roleAdmin.document.querySelectorAll(".portal-nav-btn").length === 5);
+  check("Pregled prikaže statistične kartice",
+    roleAdmin.document.querySelectorAll("#statGrid .stat-card").length === 4);
+  check("Pregled prikaže zadnje komentarje",
+    roleAdmin.document.getElementById("dashComments").textContent.includes("Zvezda"));
+
+  const goTab = (t) => roleAdmin.document.querySelector('.portal-nav-btn[data-tab="' + t + '"]').click();
+  goTab("articles");
+  check("Zavihek Novice vsebuje urejevalnik člankov",
+    roleAdmin.document.querySelector('.portal-panel[data-panel="articles"]').classList.contains("is-active") &&
+    !!roleAdmin.document.getElementById("articleForm"));
+
+  goTab("comments");
+  await tick(30);
+  check("Zavihek Komentarji prikaže niti bralcev",
+    roleAdmin.document.querySelectorAll("#adminComments .thread").length >= 1);
+  check("Nit prikaže sliko in povezavo iz komentarja",
+    !!roleAdmin.document.querySelector("#adminComments .c-media img") &&
+    !!roleAdmin.document.querySelector("#adminComments .c-media .c-link"));
+  const replyForm = roleAdmin.document.querySelector("#adminComments .c-reply-form");
+  replyForm.querySelector("input").value = "Hvala za posnetek, Zvezda!";
+  replyForm.dispatchEvent(new roleAdmin.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  await tick(80);
+  check("Uradni odgovor se pojavi v niti",
+    roleAdmin.document.getElementById("adminComments").textContent.includes("Hvala za posnetek"));
+  check("Uradni odgovor ima značko uredništva",
+    !!roleAdmin.document.querySelector("#adminComments .badge-official"));
+  const officialSaved = Object.values(FB.comments)
+    .flatMap((list) => Object.values(list))
+    .find((c) => c.text === "Hvala za posnetek, Zvezda!");
+  check("Uradni odgovor se shrani v oblak z oznako official",
+    !!officialSaved && officialSaved.official === true && officialSaved.name === "Filip Knez");
+
+  goTab("users");
+  await tick(30);
+  const card = roleAdmin.document.querySelector("#usersList .user-card");
+  check("Uporabniki so prikazani kot kartice", !!card && card.textContent.includes("Zvezda"));
+  check("Kartica šteje komentarje, slike in povezave",
+    card.querySelectorAll(".u-chip").length >= 3);
+  const drawer2 = openDrawer(uid);
+  check("Predal prikaže galerijo slik in povezave",
+    !!roleAdmin.document.querySelector("#userDrawer .drawer-gallery img") &&
+    !!roleAdmin.document.querySelector("#userDrawer .drawer-links .c-link"));
+  check("Predal prikaže komentarje uporabnika",
+    drawer2.textContent.includes("Moj posnetek kometa"));
+  roleAdmin.document.getElementById("drawerClose").click();
+  check("Predal se zapre", roleAdmin.document.getElementById("userDrawer").classList.contains("hidden"));
+
+  goTab("profile");
+  await tick(30);
+  check("Moj profil ima značko uradnega profila",
+    !!roleAdmin.document.querySelector('.portal-panel[data-panel="profile"] .verified-chip'));
+  check("Moj profil našteje uradne odgovore",
+    roleAdmin.document.getElementById("profileReplies").textContent.includes("Hvala za posnetek"));
+  check("Moj profil vsebuje razdelek skupnosti",
+    roleAdmin.document.getElementById("profileUsers").textContent.includes("Zvezda"));
+
+  // uradni odgovor je viden tudi bralcem pod člankom
+  const readerWin = boot("clanek.html", "http://localhost/" + articleNav.url, {
+    FB, storage: { local: {}, session: {} }, nav: { url: "" }
+  });
+  await tick(300);
+  check("Bralci vidijo uradni odgovor pod člankom",
+    readerWin.document.getElementById("commentList").textContent.includes("Hvala za posnetek"));
+  check("Uradni odgovor je posebej označen pri članku",
+    !!readerWin.document.querySelector("#commentList .comment.is-official"));
 
   // 7. Urejanje iz admin panela
   adminWin.document.querySelector(".admin-list-item").click();
