@@ -113,6 +113,11 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Števec piše '1 novica • Filip Knez'", /1 novica • Filip Knez/.test(infoText));
   check("Ni več 'od tega … uredniška' v števcu", !infoText.includes("od tega"));
 
+  // Logotip v glavi
+  const headerLogo = document.querySelector(".site-header .brand-logo");
+  check("Logotip v glavi kaže na assets/logo-clean.png",
+    headerLogo && headerLogo.getAttribute("src") === "assets/logo-clean.png");
+
   // 1b. Skriti sprožilec je odstranjen
   check("Noga nima več skritega sprožilca (secretTrigger)", !document.getElementById("secretTrigger"));
   check("V kodi ni skrbniške kode ADMIN_CODE", !appJs.includes("1237") && !appJs.includes("ADMIN_CODE"));
