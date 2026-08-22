@@ -1654,3 +1654,7 @@ textarea#fContent {
   .profile-hero-stats { width: 100%; justify-content: space-between; }
 }
 body.portal-open { overflow: hidden; }
+.purge-btn { display: inline-flex; align-items: center; gap: 7px; justify-self: start; }
+.purge-btn .ico { width: 15px; height: 15px; }
+.comment-btn .ico { width: 15px; height: 15px; vertical-align: -0.2em; }
+.comment-delete { color: var(--danger); }

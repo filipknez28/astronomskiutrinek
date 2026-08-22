@@ -1398,6 +1398,7 @@ function initAdmin() {
     else renderAdminList();
     renderFeed();
     await deleteFromCloud(id);
+    await deleteCommentsOfArticle(id);
   });
 }
 
@@ -1569,7 +1570,7 @@ function commentHtml(c) {
     `<div class="comment-actions">` +
     (canReply ? `<button class="comment-btn" data-reply="${escapeHtml(c.id)}">↩ Odgovori</button>` : "") +
     (canEdit ? `<button class="comment-btn" data-edit="${escapeHtml(c.id)}">✎ Uredi</button>` : "") +
-    (canDel ? `<button class="comment-btn comment-delete" data-delete="${escapeHtml(c.id)}">🗑</button>` : "") +
+    (canDel ? `<button class="comment-btn comment-delete" data-delete="${escapeHtml(c.id)}" title="Izbriši komentar" aria-label="Izbriši komentar">${ico("trash")}</button>` : "") +
     `</div>`;
   const officialBadge = c.official
     ? `<span class="badge-official">${ICO("star")}${escapeHtml(c.role || "Uredništvo")}</span>` : "";
@@ -1815,6 +1816,56 @@ function initCommentExtras() {
     $("commentForm").classList.remove("hidden");
     gate.classList.add("hidden");
   }
+}
+
+/* ---------- Čiščenje komentarjev izbrisanih člankov ---------- */
+/* Ko članek izgine, ne pustimo njegovih komentarjev v oblaku. */
+async function deleteCommentsOfArticle(articleId) {
+  if (!articleId) return 0;
+  const local = loadLocalComments(articleId);
+  try {
+    const all = JSON.parse(localStorage.getItem(COMMENTS_KEY) || "{}");
+    delete all[articleId];
+    localStorage.setItem(COMMENTS_KEY, JSON.stringify(all));
+  } catch (e) { /* ignore */ }
+
+  let removed = local.length;
+  if (typeof portalComments !== "undefined") {
+    removed = Math.max(removed, portalComments.filter((c) => c.articleId === articleId).length);
+    portalComments = portalComments.filter((c) => c.articleId !== articleId);
+  }
+
+  if (fbReady()) {
+    try {
+      if (FB.deleteArticleComments) await FB.deleteArticleComments(articleId);
+      else if (FB.deleteComment) {
+        for (const c of local) await FB.deleteComment(articleId, c.id);
+      }
+      setCloudStatus("online");
+    } catch (e) { setCloudStatus("offline"); }
+  }
+  if (typeof renderPortal === "function") renderPortal();
+  return removed;
+}
+
+/* Komentarji, ki visijo pri člankih, ki jih ni več (stara "smet" v oblaku) */
+function orphanArticleIds() {
+  const known = new Set(ownArticles.map((a) => a.id));
+  const ids = new Set();
+  (typeof portalComments !== "undefined" ? portalComments : []).forEach((c) => {
+    if (c.articleId && !known.has(c.articleId)) ids.add(c.articleId);
+  });
+  return [...ids];
+}
+
+async function purgeOrphanComments() {
+  const ids = orphanArticleIds();
+  if (!ids.length) return 0;
+  const count = portalComments.filter((c) => ids.includes(c.articleId)).length;
+  if (!confirm(`Najdenih ${count} komentarjev pri člankih, ki jih ni več. Jih izbrišem tudi iz oblaka?`)) return 0;
+  for (const id of ids) await deleteCommentsOfArticle(id);
+  await refreshPortal();
+  return count;
 }
 
 /* ---------- Uporabniki: glej razdelek "Skrbniški portal" spodaj ---------- */
@@ -2165,6 +2216,9 @@ function initPortal() {
       renderUsersList();
     });
   }
+  if ($("purgeOrphans")) {
+    $("purgeOrphans").addEventListener("click", () => { purgeOrphanComments(); });
+  }
   if ($("editNameBtn")) {
     $("editNameBtn").addEventListener("click", async () => {
       const name = prompt("Ime, ki bo vidno ob uradnih odgovorih:", profile.name);
@@ -2362,9 +2416,19 @@ function portalCommentRow(c) {
     </div>`;
 }
 
+function paintOrphanButton() {
+  const btn = $("purgeOrphans");
+  if (!btn) return;
+  const ids = orphanArticleIds();
+  const n = portalComments.filter((c) => ids.includes(c.articleId)).length;
+  btn.classList.toggle("hidden", n === 0);
+  btn.innerHTML = `${ICO("trash")} Počisti ostanke izbrisanih novic (${n})`;
+}
+
 function renderPortalComments() {
   const wrap = $("adminComments");
   if (!wrap) return;
+  paintOrphanButton();
   const roots = portalRoots();
   if ($("adminCommentsEmpty")) $("adminCommentsEmpty").classList.toggle("hidden", roots.length > 0);
 

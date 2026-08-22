@@ -82,6 +82,12 @@ window.FB = (function () {
     );
   }
 
+  /* Izbriši vse komentarje danega članka (ko se članek izbriše) */
+  async function deleteArticleComments(articleId) {
+    if (!articleId) return;
+    await req("comments/" + encodeURIComponent(articleId), { method: "DELETE" });
+  }
+
   /* Vsi komentarji vseh člankov naenkrat (za skrbniški portal) */
   async function loadAllComments() {
     const data = await req("comments");
@@ -171,6 +177,7 @@ window.FB = (function () {
     deleteArticle,
     loadComments,
     loadAllComments,
+    deleteArticleComments,
     loadUsers,
     saveComment,
     deleteComment,

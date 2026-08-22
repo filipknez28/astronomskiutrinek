@@ -32,6 +32,7 @@ function makeFB() {
       this.comments[articleId] = this.comments[articleId] || {};
       this.comments[articleId][c.id] = { ...c };
     },
+    async deleteArticleComments(articleId) { delete this.comments[articleId]; },
     async deleteComment(articleId, id) {
       if (this.comments[articleId]) delete this.comments[articleId][id];
     },
@@ -435,6 +436,27 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
     Object.keys(FB.cloud).length === 1 &&
     !Object.values(FB.cloud).some((a) => a.title === "Urejena testna novica"));
   check("Admin lista še vedno prikazuje preostali članek iz oblaka", adminWin.document.getElementById("adminListEmpty").classList.contains("hidden"));
+  check("Brisanje članka pobriše tudi njegove komentarje iz oblaka",
+    !FB.comments[created.id] || Object.keys(FB.comments[created.id]).length === 0);
+  check("Komentarji izbrisanega članka izginejo tudi iz brskalnika",
+    !JSON.parse(storageAfterDelete.local["astronomski-utrinek-comments-v1"] || "{}")[created.id]);
+
+  // 8b. Gumb za čiščenje ostankov starih (že izbrisanih) člankov
+  FB.comments["stara-novica"] = {
+    "c-smet": { id: "c-smet", name: "Zvezda", userId: "u-x", text: "Komentar pri izbrisani novici", date: new Date().toISOString() }
+  };
+  const purgeWin = boot("admin.html", "http://localhost/admin.html", {
+    FB, storage: { local: {}, session: { "astronomski-utrinek-admin": "1" } }, nav: { url: "" }
+  });
+  await tick(200);
+  purgeWin.document.querySelector('.portal-nav-btn[data-tab="comments"]').click();
+  await tick(50);
+  const purgeBtn = purgeWin.document.getElementById("purgeOrphans");
+  check("Portal opozori na komentarje izbrisanih novic",
+    purgeBtn && !purgeBtn.classList.contains("hidden") && purgeBtn.textContent.includes("(1)"));
+  purgeBtn.click();
+  await tick(150);
+  check("Čiščenje odstrani osirotele komentarje iz oblaka", !FB.comments["stara-novica"]);
 
   // 9. Iskanje in filter
   const search = homeAfterDelete.document.getElementById("searchInput");
