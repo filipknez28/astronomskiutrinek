@@ -72,7 +72,30 @@
         <div id="commentList" class="comment-list"></div>
         <form id="commentForm" class="comment-form hidden">
           <textarea id="commentText" class="text-input" rows="3" placeholder="Tvoj komentar…" required></textarea>
-          <button class="btn btn-primary" type="submit">Objavi komentar</button>
+          <div id="commentExtras" class="comment-extras hidden">
+            <div class="form-field">
+              <label for="commentImage">Slika (povezava ali datoteka)</label>
+              <div class="cover-fields">
+                <input id="commentImage" class="text-input" type="text" placeholder="https://…/slika.jpg" />
+                <label class="btn btn-small">
+                  Naloži
+                  <input type="file" id="commentImageFile" accept="image/*" hidden />
+                </label>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="commentLink">Povezava</label>
+              <input id="commentLink" class="text-input" type="url" placeholder="https://…" />
+            </div>
+          </div>
+          <div class="comment-form-bar">
+            <button type="button" class="chip-btn" id="toggleExtras">Dodaj sliko ali povezavo</button>
+            <label class="official-toggle hidden" id="officialToggleWrap">
+              <input type="checkbox" id="commentOfficial" checked />
+              <span>Objavi kot <strong id="officialToggleName">uredništvo</strong></span>
+            </label>
+            <button class="btn btn-primary" type="submit">Objavi komentar</button>
+          </div>
         </form>
         <p id="commentGate" class="comment-gate">
           Za komentar se <a href="prijava.html">prijavi ali ustvari profil</a>.
