@@ -107,6 +107,32 @@ V [Google Search Console](https://search.google.com/search-console) dodaj lastni
 `https://astronomskiutrinek.top`, preveri domeno in pošlji
 `https://astronomskiutrinek.top/sitemap.xml`.
 
+
+## Skrbniški portal (celozaslonski overlay)
+
+Po Google prijavi urednika na `admin.html` se čez celo stran odpre portal s stransko
+navigacijo in petimi razdelki:
+
+| Razdelek | Kaj omogoča |
+| --- | --- |
+| **Pregled** | Statistika skupnosti (uporabniki, komentarji, slike in povezave), zadnji komentarji in novi uporabniki. |
+| **Novice** | Pisanje, takojšnja objava, popravljanje objavljenih novic in kategorije. Popravki ohranijo datum objave in komentarje. |
+| **Komentarji** | Vse niti z vseh člankov, iskanje in filtri (brez odgovora, s sliko ali povezavo, uradni odgovori) ter polje za takojšen **uradni odgovor uredništva**. |
+| **Uporabniki** | Kartice bralcev z avatarjem, e-naslovom in števci komentarjev, slik in povezav; klik odpre predal s profilom, galerijo, povezavami, komentarji ter gumbi za vloge, bane in **izbris uporabnika** (profil, vloga in vsi njegovi komentarji, tudi v oblaku). |
+| **Moj profil** | Službeni profil (ime, slika, naziv), statistika uradnih odgovorov, pregled odgovorov in razdelek skupnosti. |
+
+### Uradni odgovori
+
+Lastnik in admini imajo pod komentarji stikalo **»Objavi kot uredništvo«**. Tak
+komentar dobi modro značko s službenim imenom in je posebej označen tudi bralcem.
+Privzeto je vklopljeno le, kadar ni prijavljenega bralskega računa.
+
+### Komentarji s sliko in povezavo
+
+Bralci lahko komentarju priložijo sliko (povezava ali datoteka, ki se stisne v
+brskalniku) in povezavo. Uredništvo jih vidi zbrane pri vsakem uporabniku v razdelku
+Uporabniki. Lokacije obiskovalcev se ne zbirajo.
+
 ## Zagon
 
 Stran je statična (HTML + CSS + JS), zato jo lahko odpreš neposredno ali jo postrežeš
@@ -137,7 +163,8 @@ npx serve .
 - `firebase.js` — REST odjemalec za Firebase Realtime Database
 - `firebase-config.js` — Firebase in Analytics konfiguracija
 - `assets/` — lokalne slike za začetne članke
-- `assets/aqw.png` — originalni logotip, prikazan v levem zgornjem kotu (temna podlaga se zlije s temno glavo)
+- `assets/logo-clean.png` — logotip v glavi na vseh straneh
+- `assets/aqw.png` — originalni logotip (hranjen v repozitoriju)
 - `assets/logo-prosojen.png` — rezervna, prosojna verzija logotipa (shranjena za morebitno kasnejšo uporabo)
 - `assets/123456789.png` — prejšnji, uporabniško naloženi logotip (hranjen v repozitoriju)
 - `assets/filip-knez.jpg` — profilna slika urednika

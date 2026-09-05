@@ -82,6 +82,35 @@ window.FB = (function () {
     );
   }
 
+  /* Izbriši vse komentarje danega članka (ko se članek izbriše) */
+  async function deleteArticleComments(articleId) {
+    if (!articleId) return;
+    await req("comments/" + encodeURIComponent(articleId), { method: "DELETE" });
+  }
+
+  /* Vsi komentarji vseh člankov naenkrat (za skrbniški portal) */
+  async function loadAllComments() {
+    const data = await req("comments");
+    if (!data || typeof data !== "object") return [];
+    const out = [];
+    Object.entries(data).forEach(([articleId, list]) => {
+      if (!list || typeof list !== "object") return;
+      Object.entries(list).forEach(([id, c]) => {
+        if (c && typeof c === "object") out.push({ ...c, id, articleId });
+      });
+    });
+    return out.sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+  }
+
+  /* Vsi registrirani uporabniki (za razdelek Uporabniki) */
+  async function loadUsers() {
+    const data = await req("users");
+    if (!data || typeof data !== "object") return [];
+    return Object.entries(data)
+      .filter(([, u]) => u && typeof u === "object")
+      .map(([id, u]) => ({ ...u, id: u.id || id }));
+  }
+
   /* ===== Vloge (moderator / admin) in začasni bani (po userId) ===== */
   async function loadRoles() {
     const data = await req("roles");
@@ -109,6 +138,22 @@ window.FB = (function () {
         body: JSON.stringify({ id: user.id })
       });
     }
+  }
+
+  /* Izbriši uporabnika (profil in vpis po e-naslovu) */
+  async function deleteUser(userId, email) {
+    if (!userId) return;
+    await req("users/" + encodeURIComponent(userId), { method: "DELETE" });
+    if (email) {
+      const key = encodeURIComponent(String(email).toLowerCase().replace(/\./g, ","));
+      await req("usersByEmail/" + key, { method: "DELETE" });
+    }
+  }
+
+  /* Izbriši vlogo / ban uporabnika */
+  async function deleteRole(userId) {
+    if (!userId) return;
+    await req("roles/" + encodeURIComponent(userId), { method: "DELETE" });
   }
 
   async function loadUserByEmail(email) {
@@ -147,11 +192,16 @@ window.FB = (function () {
     saveArticle,
     deleteArticle,
     loadComments,
+    loadAllComments,
+    deleteArticleComments,
+    loadUsers,
     saveComment,
     deleteComment,
     loadRoles,
     saveRole,
     saveUser,
+    deleteUser,
+    deleteRole,
     loadUserByEmail,
     loadSiteProfile,
     saveSiteProfile,

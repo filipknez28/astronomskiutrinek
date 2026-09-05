@@ -1087,11 +1087,13 @@ function openAdmin() {
       emailEl.classList.add("hidden");
     }
   }
+  document.body.classList.add("portal-open");
   resetForm();
   renderAdminList();
-  if ($("usersList")) renderUsersList();
+  initPortal();
+  switchPortalTab(portalTab || "dashboard");
   setCloudStatus(cloudStatus);
-  if ($("fTitle")) $("fTitle").focus();
+  refreshPortal();
 }
 
 function statusMeta(a) {
@@ -1265,6 +1267,7 @@ function initCrop() {
 function paintProfile() {
   if ($("profileName")) $("profileName").textContent = profile.name;
   if ($("profileAvatar")) $("profileAvatar").src = profile.avatar;
+  if (typeof paintPortalIdentity === "function") paintPortalIdentity();
 }
 
 function initComposer() {
@@ -1340,6 +1343,7 @@ function initAdmin() {
       try { if (window.AUAuth) AUAuth.logout(); } catch (e) { /* ignore */ }
       editingId = null;
       hideModal("adminPanel");
+      document.body.classList.remove("portal-open");
       showModal("loginModal");
     });
   }
@@ -1413,6 +1417,7 @@ function initAdmin() {
     else renderAdminList();
     renderFeed();
     await deleteFromCloud(id);
+    await deleteCommentsOfArticle(id);
   });
 }
 
@@ -1581,17 +1586,25 @@ function commentHtml(c) {
     `<div class="comment-actions">` +
     (canReply ? `<button class="comment-btn" data-reply="${escapeHtml(c.id)}">↩ Odgovori</button>` : "") +
     (canEdit ? `<button class="comment-btn" data-edit="${escapeHtml(c.id)}">✎ Uredi</button>` : "") +
-    (canDel ? `<button class="comment-btn comment-delete" data-delete="${escapeHtml(c.id)}">🗑</button>` : "") +
+    (canDel ? `<button class="comment-btn comment-delete" data-delete="${escapeHtml(c.id)}" title="Izbriši komentar" aria-label="Izbriši komentar">${ico("trash")}</button>` : "") +
     `</div>`;
+  const officialBadge = c.official
+    ? `<span class="badge-official">${ICO("star")}${escapeHtml(c.role || "Uredništvo")}</span>` : "";
+  const img = c.image
+    ? `<img src="${escapeHtml(c.image)}" alt="Priloga h komentarju" loading="lazy" onerror="this.remove()" />` : "";
+  const link = c.link
+    ? `<a class="c-link" href="${escapeHtml(c.link)}" target="_blank" rel="noopener nofollow">${ICO("link")}${escapeHtml(c.link.replace(/^https?:\/\//, "").slice(0, 46))}</a>` : "";
+  const media = img || link ? `<div class="comment-media">${img}${link}</div>` : "";
   return `
-    <article class="comment ${c.parentId ? "is-reply" : ""}" data-cid="${escapeHtml(c.id)}">
-      <img src="${escapeHtml(c.avatar || "assets/filip-knez.jpg")}" alt="">
+    <article class="comment ${c.parentId ? "is-reply" : ""} ${c.official ? "is-official" : ""}" data-cid="${escapeHtml(c.id)}">
+      <img src="${escapeHtml(c.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'">
       <div class="comment-body">
         <div class="comment-head">
-          <strong>${escapeHtml(c.name || "Anonimnež")}</strong>${roleBadge}${bannedBadge}
+          <strong>${escapeHtml(c.name || "Anonimnež")}</strong>${officialBadge}${roleBadge}${bannedBadge}
           <time>${escapeHtml(formatDate((c.date || "").slice(0, 10)))}</time> ${edited}
         </div>
         <p class="comment-text" id="ctext-${escapeHtml(c.id)}">${escapeHtml(c.text)}</p>
+        ${media}
         ${actions}
         <div class="comment-reply-wrap" id="creply-${escapeHtml(c.id)}"></div>
       </div>
@@ -1651,10 +1664,16 @@ function toggleReplyForm(c) {
   const wrap = $("creply-" + c.id);
   if (!wrap) return;
   if (wrap.innerHTML) { wrap.innerHTML = ""; return; }
+  const officialOpt = canPostOfficial()
+    ? `<label class="official-toggle">
+         <input type="checkbox" id="replyOfficial-${c.id}" ${currentUser() ? "" : "checked"} />
+         <span>Odgovori kot <strong>${escapeHtml(profile.name)}</strong> · ${escapeHtml(profile.role || "Urednik")}</span>
+       </label>` : "";
   wrap.innerHTML = `
     <form class="comment-reply-form" id="replyForm-${c.id}">
       <textarea class="text-input" id="replyArea-${c.id}" rows="2" placeholder="Odgovori na komentar…"></textarea>
       <div class="comment-form-actions">
+        ${officialOpt}
         <button class="btn btn-primary btn-small" type="submit">↩ Objavi odgovor</button>
         <button class="btn btn-ghost btn-small" type="button" id="replyCancel-${c.id}">Prekliči</button>
       </div>
@@ -1663,12 +1682,17 @@ function toggleReplyForm(c) {
     e.preventDefault();
     const u = currentUser();
     const t = $("replyArea-" + c.id).value.trim();
-    if (!u || !t || currentUserBanned()) return;
+    const asOfficial = canPostOfficial() && $("replyOfficial-" + c.id) && $("replyOfficial-" + c.id).checked;
+    if (!t) return;
+    if (!asOfficial && (!u || currentUserBanned())) return;
+    const who = asOfficial ? officialAuthor() : { userId: u.id, name: u.name, avatar: u.avatar || "", role: "" };
     const reply = {
       id: makeId(),
-      name: u.name,
-      avatar: u.avatar || "",
-      userId: u.id,
+      name: who.name,
+      avatar: who.avatar,
+      userId: who.userId,
+      role: who.role || "",
+      official: !!asOfficial,
       parentId: c.id,
       text: t,
       date: new Date().toISOString()
@@ -1682,8 +1706,18 @@ function toggleReplyForm(c) {
   $("replyCancel-" + c.id).addEventListener("click", () => { wrap.innerHTML = ""; });
 }
 
+/* Stikalo »objavi kot uredništvo« — privzeto vklopljeno le, če ni prijavljenega bralca */
+function paintOfficialToggle() {
+  const wrap = $("officialToggleWrap");
+  if (!wrap) return;
+  wrap.classList.toggle("hidden", !canPostOfficial());
+  if ($("commentOfficial")) $("commentOfficial").checked = !currentUser();
+  if ($("officialToggleName")) $("officialToggleName").textContent = profile.name;
+}
+
 function paintCommentsGate() {
   if (!$("commentsBox")) return;
+  paintOfficialToggle();
   const u = currentUser();
   const banned = currentUserBanned();
   if ($("commentForm")) {
@@ -1721,107 +1755,126 @@ async function initComments(articleId) {
       e.preventDefault();
       const u = currentUser();
       const text = ($("commentText").value || "").trim();
-      if (!u || currentUserBanned() || !text || !currentArticleId) return;
+      const asOfficial = canPostOfficial() && $("commentOfficial") && $("commentOfficial").checked;
+      if (!text || !currentArticleId) return;
+      if (!asOfficial && (!u || currentUserBanned())) return;
+      const who = asOfficial ? officialAuthor() : { userId: u.id, name: u.name, avatar: u.avatar || "", role: "" };
       const comment = {
         id: makeId(),
-        name: u.name,
-        avatar: u.avatar || "",
-        userId: u.id,
+        name: who.name,
+        avatar: who.avatar,
+        userId: who.userId,
+        role: who.role || "",
+        official: !!asOfficial,
         text,
+        image: safeUrl($("commentImage") ? $("commentImage").value : ""),
+        link: safeUrl($("commentLink") ? $("commentLink").value : ""),
         date: new Date().toISOString()
       };
       const next = loadLocalComments(currentArticleId).concat(comment);
       saveLocalComments(currentArticleId, next);
       renderCommentList(next);
       $("commentText").value = "";
+      if ($("commentImage")) $("commentImage").value = "";
+      if ($("commentLink")) $("commentLink").value = "";
+      if ($("commentExtras")) $("commentExtras").classList.add("hidden");
+      if ($("toggleExtras")) $("toggleExtras").classList.remove("is-on");
       if (fbReady() && FB.saveComment) {
         try { await FB.saveComment(currentArticleId, comment); } catch (err) { /* ignore */ }
       }
       if ($("usersList")) renderUsersList();
     });
   }
+  initCommentExtras();
   window.addEventListener("au-auth", paintCommentsGate);
 }
 
-/* ---------- Uporabniki in vloge (v skrbniškem meniju) ---------- */
-function collectKnownUsers() {
-  const seen = {};
+/* Priloge (slika, povezava) in uradni način pod člankom */
+function initCommentExtras() {
+  const toggle = $("toggleExtras");
+  if (toggle && !toggle.dataset.bound) {
+    toggle.dataset.bound = "1";
+    toggle.addEventListener("click", () => {
+      const box = $("commentExtras");
+      if (!box) return;
+      box.classList.toggle("hidden");
+      toggle.classList.toggle("is-on", !box.classList.contains("hidden"));
+    });
+  }
+  const file = $("commentImageFile");
+  if (file && !file.dataset.bound) {
+    file.dataset.bound = "1";
+    file.addEventListener("change", async () => {
+      const f = file.files && file.files[0];
+      file.value = "";
+      if (!f) return;
+      const src = window.AUEditor && AUEditor.compressImage
+        ? await AUEditor.compressImage(f, { max: 1200, quality: 0.82 })
+        : await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); });
+      if ($("commentImage")) $("commentImage").value = src;
+      if ($("commentExtras")) $("commentExtras").classList.remove("hidden");
+    });
+  }
+  paintOfficialToggle();
+  // Lastnik brez uporabniškega računa lahko vseeno odgovarja s službenim profilom
+  const gate = $("commentGate");
+  if (gate && $("commentForm") && canPostOfficial() && !currentUser()) {
+    $("commentForm").classList.remove("hidden");
+    gate.classList.add("hidden");
+  }
+}
+
+/* ---------- Čiščenje komentarjev izbrisanih člankov ---------- */
+/* Ko članek izgine, ne pustimo njegovih komentarjev v oblaku. */
+async function deleteCommentsOfArticle(articleId) {
+  if (!articleId) return 0;
+  const local = loadLocalComments(articleId);
   try {
     const all = JSON.parse(localStorage.getItem(COMMENTS_KEY) || "{}");
-    Object.values(all).forEach((list) => {
-      (Array.isArray(list) ? list : []).forEach((c) => {
-        if (c && c.userId) seen[c.userId] = { id: c.userId, name: c.name || "Uporabnik", avatar: c.avatar || "" };
-      });
-    });
+    delete all[articleId];
+    localStorage.setItem(COMMENTS_KEY, JSON.stringify(all));
   } catch (e) { /* ignore */ }
-  // lokalni profili (registrirani uporabniki v tem brskalniku)
-  try {
-    const arr = JSON.parse(localStorage.getItem("astronomski-utrinek-users-v1") || "[]");
-    (Array.isArray(arr) ? arr : []).forEach((u) => {
-      if (u && u.id) seen[u.id] = { id: u.id, name: u.name || "Uporabnik", avatar: u.avatar || "" };
-    });
-  } catch (e) { /* ignore */ }
-  return seen;
-}
 
-function renderUsersList() {
-  const ul = $("usersList");
-  if (!ul) return;
-  const users = collectKnownUsers();
-  const ids = Object.keys(users).sort();
-  if ($("usersListEmpty")) $("usersListEmpty").classList.toggle("hidden", ids.length > 0);
-  ul.innerHTML = ids.map((id) => userRowHtml(users[id])).join("");
-  ids.forEach((id) => attachUserEvents(id));
-}
+  let removed = local.length;
+  if (typeof portalComments !== "undefined") {
+    removed = Math.max(removed, portalComments.filter((c) => c.articleId === articleId).length);
+    portalComments = portalComments.filter((c) => c.articleId !== articleId);
+  }
 
-function userRowHtml(u) {
-  const r = getRoleForUser(u.id);
-  const banned = r.bannedUntil > Date.now();
-  const roleLabel = r.role === "admin" ? "Admin" : r.role === "moderator" ? "Moderator" : "Uporabnik";
-  const roleClass = r.role === "admin" ? "role-admin" : r.role === "moderator" ? "role-moderator" : "";
-  const banBadge = banned
-    ? `<span class="role-badge role-banned">⛔ Banan do ${formatDate(new Date(r.bannedUntil).toISOString())}</span>` : "";
-  const controls =
-    `<div class="user-controls">` +
-    (r.role !== "moderator" ? `<button class="btn-mini" data-action="moderator">→ Moderator</button>` : "") +
-    (r.role !== "admin" ? `<button class="btn-mini" data-action="admin">→ Admin</button>` : "") +
-    ((r.role === "admin" || r.role === "moderator") ? `<button class="btn-mini" data-action="demote">→ Uporabnik</button>` : "") +
-    (banned
-      ? `<button class="btn-mini" data-action="unban">Odban</button>`
-      : `<button class="btn-mini btn-ban" data-action="ban-1">⛔ 1 dan</button>` +
-        `<button class="btn-mini btn-ban" data-action="ban-7">⛔ 7 dni</button>` +
-        `<button class="btn-mini btn-ban" data-action="ban-30">⛔ 30 dni</button>`) +
-    `</div>`;
-  return `
-    <li class="user-item ${banned ? "is-banned" : ""}" data-uid="${escapeHtml(u.id)}">
-      <img class="user-avatar" src="${escapeHtml(u.avatar || "assets/filip-knez.jpg")}" alt="">
-      <div class="user-info">
-        <h5>${escapeHtml(u.name || "Uporabnik")}</h5>
-        <p><span class="role-badge ${roleClass}">${roleLabel}</span> ${banBadge}</p>
-      </div>
-      ${controls}
-    </li>`;
-}
-
-function attachUserEvents(id) {
-  const root = document.querySelector(`.user-item[data-uid="${id}"]`);
-  if (!root) return;
-  root.querySelectorAll("[data-action]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const now = Date.now();
-      switch (btn.dataset.action) {
-        case "moderator": setUserRole(id, "moderator"); break;
-        case "admin": setUserRole(id, "admin"); break;
-        case "demote": setUserRole(id, "user"); break;
-        case "ban-1": setUserRole(id, undefined, now + 86400000); break;
-        case "ban-7": setUserRole(id, undefined, now + 7 * 86400000); break;
-        case "ban-30": setUserRole(id, undefined, now + 30 * 86400000); break;
-        case "unban": setUserRole(id, undefined, null); break;
+  if (fbReady()) {
+    try {
+      if (FB.deleteArticleComments) await FB.deleteArticleComments(articleId);
+      else if (FB.deleteComment) {
+        for (const c of local) await FB.deleteComment(articleId, c.id);
       }
-    });
-  });
+      setCloudStatus("online");
+    } catch (e) { setCloudStatus("offline"); }
+  }
+  if (typeof renderPortal === "function") renderPortal();
+  return removed;
 }
 
+/* Komentarji, ki visijo pri člankih, ki jih ni več (stara "smet" v oblaku) */
+function orphanArticleIds() {
+  const known = new Set(ownArticles.map((a) => a.id));
+  const ids = new Set();
+  (typeof portalComments !== "undefined" ? portalComments : []).forEach((c) => {
+    if (c.articleId && !known.has(c.articleId)) ids.add(c.articleId);
+  });
+  return [...ids];
+}
+
+async function purgeOrphanComments() {
+  const ids = orphanArticleIds();
+  if (!ids.length) return 0;
+  const count = portalComments.filter((c) => ids.includes(c.articleId)).length;
+  if (!confirm(`Najdenih ${count} komentarjev pri člankih, ki jih ni več. Jih izbrišem tudi iz oblaka?`)) return 0;
+  for (const id of ids) await deleteCommentsOfArticle(id);
+  await refreshPortal();
+  return count;
+}
+
+/* ---------- Uporabniki: glej razdelek "Skrbniški portal" spodaj ---------- */
 function initUsersAdmin() {
   if (!$("usersList")) return;
   renderUsersList();
@@ -1948,6 +2001,697 @@ function initAuthPage() {
   }
   if ($("logoutBtn")) $("logoutBtn").addEventListener("click", () => { AUAuth.logout(); paint(); });
   paint();
+}
+
+/* ===================================================================
+   Skrbniški portal — pregled, komentarji, uporabniki, profil
+   =================================================================== */
+
+const OFFICIAL_ID = "official-utrednistvo";
+
+let portalTab = "dashboard";
+let portalComments = [];
+let portalUsers = [];
+let portalFilter = "all";
+let portalQuery = "";
+let portalUserQuery = "";
+let portalUserSort = "recent";
+let portalLoaded = false;
+
+/* ---------- Ikone ---------- */
+function ICO(name, extra) {
+  return window.AUIcons && AUIcons.svg ? AUIcons.svg(name, extra) : "";
+}
+function paintIcos(root) {
+  (root || document).querySelectorAll("[data-ico]").forEach((el) => {
+    if (el.dataset.icoDone) return;
+    el.innerHTML = ICO(el.dataset.ico);
+    el.dataset.icoDone = "1";
+  });
+}
+
+/* ---------- Pripomočki ---------- */
+function relTime(iso) {
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "";
+  const min = Math.floor(Math.max(0, Date.now() - t) / 60000);
+  if (min < 1) return "pravkar";
+  if (min < 60) return `pred ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `pred ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "včeraj";
+  if (d < 30) return `pred ${d} dnevi`;
+  return formatDate(new Date(t).toISOString().slice(0, 10));
+}
+
+function safeUrl(u) {
+  const s = String(u || "").trim();
+  if (/^data:image\//i.test(s)) return s;
+  return /^https?:\/\/\S+$/i.test(s) ? s : "";
+}
+
+function canPostOfficial() {
+  if (isOwner()) return true;
+  const u = currentUser();
+  return !!u && getRoleForUser(u.id).role === "admin";
+}
+
+function officialAuthor() {
+  return {
+    userId: OFFICIAL_ID,
+    name: (profile && profile.name) || "Uredništvo",
+    avatar: (profile && profile.avatar) || "assets/filip-knez.jpg",
+    role: (profile && profile.role) || "Urednik"
+  };
+}
+
+/* ---------- Zbiranje podatkov za portal ---------- */
+function localCommentsAll() {
+  const out = [];
+  try {
+    const all = JSON.parse(localStorage.getItem(COMMENTS_KEY) || "{}");
+    Object.entries(all).forEach(([articleId, list]) => {
+      (Array.isArray(list) ? list : []).forEach((c) => {
+        if (c && c.id) out.push({ ...c, articleId });
+      });
+    });
+  } catch (e) { /* ignore */ }
+  return out;
+}
+
+function articleTitleById(id) {
+  const a = ownArticles.find((x) => x.id === id);
+  return a ? a.title : "Novica";
+}
+
+async function loadPortalData() {
+  const map = new Map(localCommentsAll().map((c) => [c.id, c]));
+  if (fbReady() && FB.loadAllComments) {
+    try {
+      (await FB.loadAllComments()).forEach((c) => map.set(c.id, { ...map.get(c.id), ...c }));
+    } catch (e) { /* offline */ }
+  }
+  portalComments = [...map.values()].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+
+  const users = new Map();
+  const add = (u) => {
+    if (!u || !u.id) return;
+    users.set(u.id, { ...(users.get(u.id) || {}), ...u });
+  };
+  try {
+    const arr = JSON.parse(localStorage.getItem("astronomski-utrinek-users-v1") || "[]");
+    (Array.isArray(arr) ? arr : []).forEach((u) => add({ id: u.id, name: u.name, avatar: u.avatar, email: u.email }));
+  } catch (e) { /* ignore */ }
+  if (fbReady() && FB.loadUsers) {
+    try { (await FB.loadUsers()).forEach((u) => add({ id: u.id, name: u.name, avatar: u.avatar, email: u.email })); }
+    catch (e) { /* offline */ }
+  }
+  portalComments.forEach((c) => {
+    if (!c.userId || c.userId === OFFICIAL_ID) return;
+    const known = users.get(c.userId) || {};
+    add({
+      id: c.userId,
+      name: known.name || c.name || "Uporabnik",
+      avatar: known.avatar || c.avatar || "",
+      email: known.email || "",
+      lastSeen: !known.lastSeen || String(c.date) > String(known.lastSeen) ? c.date : known.lastSeen
+    });
+  });
+  portalUsers = [...users.values()];
+  portalLoaded = true;
+}
+
+function statsForUser(id) {
+  const mine = portalComments.filter((c) => c.userId === id);
+  return {
+    comments: mine.length,
+    images: mine.filter((c) => c.image).length,
+    links: mine.filter((c) => c.link).length,
+    last: mine.reduce((acc, c) => (String(c.date) > String(acc) ? c.date : acc), ""),
+    list: mine.sort((a, b) => String(b.date).localeCompare(String(a.date)))
+  };
+}
+
+/* ---------- Zagon portala ---------- */
+let portalBound = false;
+function initPortal() {
+  if (!$("adminPanel") || !$("portalTitle")) return;
+  paintIcos(document);
+  if (portalBound) return;
+  portalBound = true;
+
+  document.querySelectorAll(".portal-nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchPortalTab(btn.dataset.tab));
+  });
+  document.querySelectorAll("[data-goto]").forEach((btn) => {
+    btn.addEventListener("click", () => switchPortalTab(btn.dataset.goto));
+  });
+
+  if ($("commentSearch")) {
+    $("commentSearch").addEventListener("input", (e) => {
+      portalQuery = e.target.value.trim().toLowerCase();
+      renderPortalComments();
+    });
+  }
+  if ($("commentFilter")) {
+    $("commentFilter").addEventListener("click", (e) => {
+      const seg = e.target.closest(".seg");
+      if (!seg) return;
+      portalFilter = seg.dataset.cfilter;
+      $("commentFilter").querySelectorAll(".seg").forEach((s) => s.classList.toggle("is-active", s === seg));
+      renderPortalComments();
+    });
+  }
+  if ($("userSearch")) {
+    $("userSearch").addEventListener("input", (e) => {
+      portalUserQuery = e.target.value.trim().toLowerCase();
+      renderUsersList();
+    });
+  }
+  if ($("userSort")) {
+    $("userSort").addEventListener("click", (e) => {
+      const seg = e.target.closest(".seg");
+      if (!seg) return;
+      portalUserSort = seg.dataset.usort;
+      $("userSort").querySelectorAll(".seg").forEach((s) => s.classList.toggle("is-active", s === seg));
+      renderUsersList();
+    });
+  }
+  if ($("purgeOrphans")) {
+    $("purgeOrphans").addEventListener("click", () => { purgeOrphanComments(); });
+  }
+  if ($("editNameBtn")) {
+    $("editNameBtn").addEventListener("click", async () => {
+      const name = prompt("Ime, ki bo vidno ob uradnih odgovorih:", profile.name);
+      if (name && name.trim()) await persistProfile({ ...profile, name: name.trim() });
+      paintPortalIdentity();
+      renderPortalProfile();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && $("userDrawer") && !$("userDrawer").classList.contains("hidden")) closeUserDrawer();
+  });
+}
+
+const PORTAL_TABS = {
+  dashboard: ["Pregled", "Skrbniški portal"],
+  articles: ["Novice", "Vsebina"],
+  comments: ["Komentarji", "Skupnost"],
+  users: ["Uporabniki", "Skupnost"],
+  profile: ["Moj profil", "Službeni račun"]
+};
+
+function switchPortalTab(tab) {
+  if (!PORTAL_TABS[tab]) tab = "dashboard";
+  portalTab = tab;
+  document.querySelectorAll(".portal-nav-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.tab === tab));
+  document.querySelectorAll(".portal-panel").forEach((p) => p.classList.toggle("is-active", p.dataset.panel === tab));
+  if ($("portalTitle")) $("portalTitle").textContent = PORTAL_TABS[tab][0];
+  if ($("portalEyebrow")) $("portalEyebrow").textContent = PORTAL_TABS[tab][1];
+  closeUserDrawer();
+  const sc = document.querySelector(".portal-scroll");
+  if (sc) sc.scrollTop = 0;
+  renderPortal();
+}
+
+async function refreshPortal() {
+  await loadPortalData();
+  renderPortal();
+}
+
+function renderPortal() {
+  if (!$("portalTitle") || $("adminPanel").classList.contains("hidden")) return;
+  paintPortalIdentity();
+  if ($("navCountArticles")) $("navCountArticles").textContent = String(ownArticles.length);
+  if ($("navCountComments")) $("navCountComments").textContent = String(portalComments.length);
+  if ($("navCountUsers")) $("navCountUsers").textContent = String(portalUsers.length);
+  renderPortalDashboard();
+  renderPortalComments();
+  renderUsersList();
+  renderPortalProfile();
+  paintIcos(document);
+}
+
+function paintPortalIdentity() {
+  if ($("portalIdentityName")) $("portalIdentityName").textContent = profile.name;
+  if ($("portalIdentityAvatar")) $("portalIdentityAvatar").src = profile.avatar;
+  if ($("profileRoleOut")) $("profileRoleOut").textContent = `${profile.role || "Urednik"} · Astronomski Utrinek`;
+}
+
+/* ---------- Pregled ---------- */
+function statCardHtml(icon, value, label, extra) {
+  return `
+    <div class="stat-card">
+      <span class="stat-ic">${ICO(icon)}</span>
+      <b>${escapeHtml(String(value))}</b>
+      <span>${escapeHtml(label)}</span>
+      ${extra ? `<em>${escapeHtml(extra)}</em>` : ""}
+    </div>`;
+}
+
+function renderPortalDashboard() {
+  if (!$("statGrid")) return;
+  const dayAgo = Date.now() - 86400000;
+  const recent = portalComments.filter((c) => new Date(c.date).getTime() > dayAgo).length;
+  const answered = new Set(portalComments.filter((c) => c.official && c.parentId).map((c) => c.parentId));
+  const waiting = portalComments.filter((c) => !c.parentId && !c.official && !answered.has(c.id)).length;
+  const imgs = portalComments.filter((c) => c.image).length;
+  const links = portalComments.filter((c) => c.link).length;
+
+  $("statGrid").innerHTML =
+    statCardHtml("grid", portalUsers.length, "Uporabnikov", `${portalUsers.filter((u) => new Date(u.lastSeen || 0).getTime() > dayAgo).length} dejavnih danes`) +
+    statCardHtml("quote", portalComments.length, "Komentarjev", `${recent} v zadnjem dnevu`) +
+    statCardHtml("image", imgs + links, "Slik in povezav", `${imgs} slik · ${links} povezav`) +
+    statCardHtml("list", ownArticles.length, "Novic v arhivu", `${waiting} komentarjev čaka odgovor`);
+
+  $("dashComments").innerHTML = portalComments.length
+    ? portalComments.slice(0, 5).map((c) => `
+      <button class="mini-row" type="button" data-goto="comments">
+        <img class="mini-av" src="${escapeHtml(c.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
+        <div class="mini-body">
+          <strong>${escapeHtml(c.name || "Uporabnik")}</strong>
+          <p>${escapeHtml(c.text || "")}</p>
+          <div class="meta">
+            <span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(c.date))}</span>
+            <span class="meta-i">${ICO("list")}${escapeHtml(articleTitleById(c.articleId).slice(0, 38))}</span>
+          </div>
+        </div>
+      </button>`).join("")
+    : `<p class="admin-empty">Zaenkrat še ni komentarjev.</p>`;
+
+  const newest = [...portalUsers].sort((a, b) => String(b.lastSeen || "").localeCompare(String(a.lastSeen || ""))).slice(0, 5);
+  $("dashUsers").innerHTML = newest.length
+    ? newest.map((u) => {
+        const st = statsForUser(u.id);
+        return `
+        <button class="mini-row" type="button" data-open-user="${escapeHtml(u.id)}">
+          <img class="mini-av" src="${escapeHtml(u.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
+          <div class="mini-body">
+            <strong>${escapeHtml(u.name || "Uporabnik")}</strong>
+            <div class="meta">
+              <span class="meta-i">${ICO("quote")}${st.comments} ${st.comments === 1 ? "komentar" : "komentarjev"}</span>
+              <span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(st.last || u.lastSeen))}</span>
+            </div>
+          </div>
+        </button>`;
+      }).join("")
+    : `<p class="admin-empty">Še ni registriranih uporabnikov.</p>`;
+
+
+  document.querySelectorAll("[data-open-user]").forEach((el) => {
+    el.onclick = () => { switchPortalTab("users"); openUserDrawer(el.dataset.openUser); };
+  });
+  document.querySelectorAll(".mini-row[data-goto]").forEach((el) => {
+    el.onclick = () => switchPortalTab(el.dataset.goto);
+  });
+}
+
+/* ---------- Komentarji v portalu ---------- */
+function portalRoots() {
+  const answered = new Set(portalComments.filter((c) => c.official && c.parentId).map((c) => c.parentId));
+  let roots = portalComments.filter((c) => !c.parentId);
+  if (portalFilter === "unanswered") roots = roots.filter((c) => !c.official && !answered.has(c.id));
+  if (portalFilter === "media") roots = roots.filter((c) => c.image || c.link || portalComments.some((r) => r.parentId === c.id && (r.image || r.link)));
+  if (portalFilter === "official") roots = roots.filter((c) => c.official || portalComments.some((r) => r.parentId === c.id && r.official));
+  if (portalQuery) {
+    roots = roots.filter((c) => {
+      const kids = portalComments.filter((r) => r.parentId === c.id);
+      return [c.text, c.name, articleTitleById(c.articleId), ...kids.map((k) => `${k.text} ${k.name}`)]
+        .join(" ").toLowerCase().includes(portalQuery);
+    });
+  }
+  return roots;
+}
+
+function portalCommentRow(c) {
+  const img = c.image ? `<img src="${escapeHtml(c.image)}" alt="" loading="lazy" onerror="this.remove()" />` : "";
+  const link = c.link
+    ? `<a class="c-link" href="${escapeHtml(c.link)}" target="_blank" rel="noopener nofollow">${ICO("link")}${escapeHtml(c.link.replace(/^https?:\/\//, "").slice(0, 42))}</a>` : "";
+  const badge = c.official ? `<span class="badge-official">${ICO("star")}${escapeHtml(c.role || "Uredništvo")}</span>` : "";
+  const name = c.official
+    ? escapeHtml(c.name || "Uredništvo")
+    : `<button class="link-btn" type="button" data-open-user="${escapeHtml(c.userId || "")}">${escapeHtml(c.name || "Uporabnik")}</button>`;
+  return `
+    <div class="c-row ${c.official ? "is-official" : ""}">
+      <img class="c-av" src="${escapeHtml(c.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
+      <div class="c-body">
+        <div class="c-name">${name}${badge}</div>
+        <div class="c-meta">
+          <span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(c.date))}</span>
+        </div>
+        <div class="c-text">${escapeHtml(c.text || "")}</div>
+        ${img || link ? `<div class="c-media">${img}${link}</div>` : ""}
+      </div>
+      <div class="c-actions">
+        <button class="mini-icon-btn danger" type="button" data-pdelete="${escapeHtml(c.id)}" data-particle="${escapeHtml(c.articleId || "")}" title="Izbriši komentar">${ICO("trash")}</button>
+      </div>
+    </div>`;
+}
+
+function paintOrphanButton() {
+  const btn = $("purgeOrphans");
+  if (!btn) return;
+  const ids = orphanArticleIds();
+  const n = portalComments.filter((c) => ids.includes(c.articleId)).length;
+  btn.classList.toggle("hidden", n === 0);
+  btn.innerHTML = `${ICO("trash")} Počisti ostanke izbrisanih novic (${n})`;
+}
+
+function renderPortalComments() {
+  const wrap = $("adminComments");
+  if (!wrap) return;
+  paintOrphanButton();
+  const roots = portalRoots();
+  if ($("adminCommentsEmpty")) $("adminCommentsEmpty").classList.toggle("hidden", roots.length > 0);
+
+  wrap.innerHTML = roots.map((c) => {
+    const replies = portalComments
+      .filter((r) => r.parentId === c.id)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return `
+      <article class="thread">
+        <button class="thread-article" type="button" data-article="${escapeHtml(c.articleId || "")}">
+          ${ICO("list")} ${escapeHtml(articleTitleById(c.articleId))}
+        </button>
+        ${portalCommentRow(c)}
+        ${replies.length ? `<div class="c-replies">${replies.map(portalCommentRow).join("")}</div>` : ""}
+        <form class="c-reply-form" data-reply-to="${escapeHtml(c.id)}" data-reply-article="${escapeHtml(c.articleId || "")}">
+          <img src="${escapeHtml(profile.avatar)}" alt="" onerror="this.src='assets/mark.png'" />
+          <input class="text-input" type="text" required
+                 placeholder="Odgovori kot ${escapeHtml(profile.name)} — ${escapeHtml(profile.role || "Urednik")}…" />
+          <button class="btn btn-primary btn-small" type="submit">Odgovori</button>
+        </form>
+      </article>`;
+  }).join("");
+
+  wrap.querySelectorAll(".c-reply-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = form.querySelector("input");
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      await postOfficialReply(form.dataset.replyArticle, form.dataset.replyTo, text);
+    });
+  });
+  wrap.querySelectorAll("[data-pdelete]").forEach((btn) => {
+    btn.addEventListener("click", () => deletePortalComment(btn.dataset.particle, btn.dataset.pdelete));
+  });
+  wrap.querySelectorAll("[data-article]").forEach((btn) => {
+    btn.addEventListener("click", () => { if (btn.dataset.article) navigate("clanek.html?id=" + encodeURIComponent(btn.dataset.article)); });
+  });
+  wrap.querySelectorAll("[data-open-user]").forEach((el) => {
+    el.addEventListener("click", () => { switchPortalTab("users"); openUserDrawer(el.dataset.openUser); });
+  });
+}
+
+async function postOfficialReply(articleId, parentId, text) {
+  if (!articleId) return;
+  const a = officialAuthor();
+  const reply = {
+    id: makeId(),
+    name: a.name,
+    avatar: a.avatar,
+    userId: a.userId,
+    role: a.role,
+    official: true,
+    parentId: parentId || null,
+    text,
+    date: new Date().toISOString()
+  };
+  const list = loadLocalComments(articleId).concat(reply);
+  saveLocalComments(articleId, list);
+  portalComments = [{ ...reply, articleId }, ...portalComments];
+  renderPortal();
+  if (fbReady() && FB.saveComment) {
+    try { await FB.saveComment(articleId, reply); } catch (e) { /* offline */ }
+  }
+}
+
+async function deletePortalComment(articleId, id) {
+  if (!confirm("Ali res želite izbrisati ta komentar?")) return;
+  if (articleId) {
+    const list = loadLocalComments(articleId).filter((x) => x.id !== id && x.parentId !== id);
+    saveLocalComments(articleId, list);
+  }
+  const removed = portalComments.filter((c) => c.id === id || c.parentId === id);
+  portalComments = portalComments.filter((c) => c.id !== id && c.parentId !== id);
+  renderPortal();
+  if (fbReady() && FB.deleteComment) {
+    for (const c of removed) {
+      try { await FB.deleteComment(c.articleId || articleId, c.id); } catch (e) { /* offline */ }
+    }
+  }
+}
+
+/* ---------- Uporabniki ---------- */
+function sortedPortalUsers() {
+  let list = [...portalUsers];
+  if (portalUserQuery) {
+    list = list.filter((u) => [u.name, u.email].filter(Boolean).join(" ").toLowerCase().includes(portalUserQuery));
+  }
+  if (portalUserSort === "active") list.sort((a, b) => statsForUser(b.id).comments - statsForUser(a.id).comments);
+  else if (portalUserSort === "media") {
+    list.sort((a, b) => {
+      const sa = statsForUser(a.id), sb = statsForUser(b.id);
+      return (sb.images + sb.links) - (sa.images + sa.links);
+    });
+  } else list.sort((a, b) => String(b.lastSeen || "").localeCompare(String(a.lastSeen || "")));
+  return list;
+}
+
+function userCardHtml(u) {
+  const st = statsForUser(u.id);
+  const r = getRoleForUser(u.id);
+  const banned = r.bannedUntil > Date.now();
+  const roleChip = r.role === "admin"
+    ? `<span class="u-chip accent">${ICO("star")} Admin</span>`
+    : r.role === "moderator" ? `<span class="u-chip accent">${ICO("star")} Moderator</span>` : "";
+  return `
+    <li>
+      <button class="user-card ${banned ? "is-banned" : ""}" type="button" data-uid="${escapeHtml(u.id)}">
+        <div class="user-card-top">
+          <img src="${escapeHtml(u.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
+          <div>
+            <strong>${escapeHtml(u.name || "Uporabnik")}</strong>
+            ${u.email ? `<span class="u-place">${escapeHtml(u.email)}</span>` : ""}
+          </div>
+        </div>
+        <div class="user-chips">
+          <span class="u-chip accent">${ICO("quote")} ${st.comments}</span>
+          <span class="u-chip">${ICO("image")} ${st.images}</span>
+          <span class="u-chip">${ICO("link")} ${st.links}</span>
+          ${roleChip}
+          ${banned ? `<span class="u-chip warn">Banan</span>` : ""}
+        </div>
+        <div class="u-last">${ICO("orbit")} Nazadnje ${escapeHtml(relTime(st.last || u.lastSeen))}</div>
+      </button>
+    </li>`;
+}
+
+function renderUsersList() {
+  const ul = $("usersList");
+  if (!ul) return;
+  const list = sortedPortalUsers();
+  if ($("usersListEmpty")) $("usersListEmpty").classList.toggle("hidden", list.length > 0);
+  ul.innerHTML = list.map(userCardHtml).join("");
+  ul.querySelectorAll("[data-uid]").forEach((card) => {
+    card.addEventListener("click", () => openUserDrawer(card.dataset.uid));
+  });
+
+  const compact = $("profileUsers");
+  if (compact) {
+    const top = [...portalUsers].sort((a, b) => statsForUser(b.id).comments - statsForUser(a.id).comments).slice(0, 6);
+    compact.innerHTML = top.length
+      ? top.map(userCardHtml).join("")
+      : `<p class="admin-empty">Skupnost je še prazna — kartice se pojavijo, ko kdo komentira.</p>`;
+    compact.querySelectorAll("[data-uid]").forEach((card) => {
+      card.addEventListener("click", () => { switchPortalTab("users"); openUserDrawer(card.dataset.uid); });
+    });
+  }
+}
+
+function openUserDrawer(id) {
+  const drawer = $("userDrawer");
+  const u = portalUsers.find((x) => x.id === id);
+  if (!drawer || !u) return;
+  const st = statsForUser(u.id);
+  const r = getRoleForUser(u.id);
+  const banned = r.bannedUntil > Date.now();
+  const images = st.list.filter((c) => c.image);
+  const links = st.list.filter((c) => c.link);
+  const roleLabel = r.role === "admin" ? "Admin" : r.role === "moderator" ? "Moderator" : "Uporabnik";
+
+  $("userDrawerInner").innerHTML = `
+    <div class="drawer-head">
+      <div class="drawer-id">
+        <img src="${escapeHtml(u.avatar || "assets/mark.png")}" alt="" onerror="this.src='assets/mark.png'" />
+        <div>
+          <h2>${escapeHtml(u.name || "Uporabnik")}</h2>
+          <p>${ICO("orbit")} Nazadnje ${escapeHtml(relTime(st.last || u.lastSeen))}</p>
+          ${u.email ? `<p>${escapeHtml(u.email)}</p>` : ""}
+        </div>
+      </div>
+      <button class="mini-icon-btn" type="button" id="drawerClose" aria-label="Zapri">${ICO("remove")}</button>
+    </div>
+
+    <div class="drawer-stats">
+      <div class="drawer-stat"><b>${st.comments}</b><span>Komentarjev</span></div>
+      <div class="drawer-stat"><b>${st.images}</b><span>Slik</span></div>
+      <div class="drawer-stat"><b>${st.links}</b><span>Povezav</span></div>
+    </div>
+
+    <div class="drawer-section">
+      <h3>${ICO("star")} Vloga in moderiranje</h3>
+      <p class="modal-sub">Trenutno: <strong>${roleLabel}</strong>${banned ? ` · banan do ${escapeHtml(formatDate(new Date(r.bannedUntil).toISOString().slice(0, 10)))}` : ""}</p>
+      <div class="drawer-roles">
+        ${r.role !== "moderator" ? `<button class="btn btn-small" type="button" data-action="moderator">Moderator</button>` : ""}
+        ${r.role !== "admin" ? `<button class="btn btn-small" type="button" data-action="admin">Admin</button>` : ""}
+        ${(r.role === "admin" || r.role === "moderator") ? `<button class="btn btn-ghost btn-small" type="button" data-action="demote">Navaden uporabnik</button>` : ""}
+        ${banned
+          ? `<button class="btn btn-ghost btn-small" type="button" data-action="unban">Odban</button>`
+          : `<button class="btn btn-danger-ghost btn-small" type="button" data-action="ban-1">Ban 1 dan</button>
+             <button class="btn btn-danger-ghost btn-small" type="button" data-action="ban-7">7 dni</button>
+             <button class="btn btn-danger-ghost btn-small" type="button" data-action="ban-30">30 dni</button>`}
+      </div>
+    </div>
+
+    ${images.length ? `<div class="drawer-section">
+      <h3>${ICO("image")} Deljene slike</h3>
+      <div class="drawer-gallery">${images.slice(0, 9).map((c) => `<img src="${escapeHtml(c.image)}" alt="" loading="lazy" onerror="this.remove()" />`).join("")}</div>
+    </div>` : ""}
+
+    ${links.length ? `<div class="drawer-section">
+      <h3>${ICO("link")} Deljene povezave</h3>
+      <div class="drawer-links">${links.slice(0, 8).map((c) => `<a class="c-link" href="${escapeHtml(c.link)}" target="_blank" rel="noopener nofollow">${ICO("link")}${escapeHtml(c.link.replace(/^https?:\/\//, "").slice(0, 42))}</a>`).join("")}</div>
+    </div>` : ""}
+
+    <div class="drawer-section drawer-danger">
+      <h3>${ICO("trash")} Izbriši uporabnika</h3>
+      <p class="modal-sub">Odstrani profil, vlogo in vse komentarje tega uporabnika — tudi iz oblačne shrambe.</p>
+      <button class="btn btn-danger-ghost btn-small" type="button" id="deleteUserBtn">${ICO("trash")} Izbriši uporabnika</button>
+    </div>
+
+    <div class="drawer-section">
+      <h3>${ICO("quote")} Komentarji</h3>
+      <div class="mini-list">
+        ${st.list.length ? st.list.slice(0, 20).map((c) => `
+          <div class="mini-row">
+            <div class="mini-body">
+              <strong>${escapeHtml(articleTitleById(c.articleId).slice(0, 50))}</strong>
+              <p>${escapeHtml(c.text || "")}</p>
+              <div class="meta"><span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(c.date))}</span></div>
+            </div>
+          </div>`).join("") : `<p class="admin-empty">Ta uporabnik še ni komentiral.</p>`}
+      </div>
+    </div>`;
+
+  drawer.classList.remove("hidden");
+  drawer.setAttribute("aria-hidden", "false");
+  $("drawerClose").addEventListener("click", closeUserDrawer);
+  if ($("deleteUserBtn")) $("deleteUserBtn").addEventListener("click", () => { deleteUserAccount(u); });
+  drawer.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const now = Date.now();
+      switch (btn.dataset.action) {
+        case "moderator": setUserRole(u.id, "moderator"); break;
+        case "admin": setUserRole(u.id, "admin"); break;
+        case "demote": setUserRole(u.id, "user"); break;
+        case "ban-1": setUserRole(u.id, undefined, now + 86400000); break;
+        case "ban-7": setUserRole(u.id, undefined, now + 7 * 86400000); break;
+        case "ban-30": setUserRole(u.id, undefined, now + 30 * 86400000); break;
+        case "unban": setUserRole(u.id, undefined, null); break;
+      }
+      openUserDrawer(u.id);
+    });
+  });
+}
+
+/* Popolnoma odstrani uporabnika: profil, vlogo in vse njegove komentarje */
+async function deleteUserAccount(user) {
+  if (!user || !user.id) return;
+  const st = statsForUser(user.id);
+  const msg = st.comments
+    ? `Izbrišem uporabnika »${user.name || "Uporabnik"}«?\n\nOdstranjeni bodo njegov profil in ${st.comments} ${st.comments === 1 ? "komentar" : "komentarjev"} (tudi iz oblaka). Tega ni mogoče razveljaviti.`
+    : `Izbrišem uporabnika »${user.name || "Uporabnik"}«?\n\nProfil bo odstranjen tudi iz oblaka. Tega ni mogoče razveljaviti.`;
+  if (!confirm(msg)) return;
+
+  // 1) njegovi komentarji (lokalno + oblak)
+  const mine = portalComments.filter((c) => c.userId === user.id);
+  const byArticle = {};
+  mine.forEach((c) => { (byArticle[c.articleId] = byArticle[c.articleId] || []).push(c); });
+  Object.entries(byArticle).forEach(([articleId, list]) => {
+    const ids = new Set(list.map((c) => c.id));
+    const keep = loadLocalComments(articleId).filter((c) => !ids.has(c.id) && !ids.has(c.parentId));
+    saveLocalComments(articleId, keep);
+  });
+  portalComments = portalComments.filter((c) => c.userId !== user.id && !mine.some((m) => m.id === c.parentId));
+
+  // 2) profil in vloga
+  portalUsers = portalUsers.filter((u) => u.id !== user.id);
+  delete roles[user.id];
+  saveLocalRoles();
+  try {
+    const arr = JSON.parse(localStorage.getItem("astronomski-utrinek-users-v1") || "[]");
+    localStorage.setItem(
+      "astronomski-utrinek-users-v1",
+      JSON.stringify((Array.isArray(arr) ? arr : []).filter((u) => u.id !== user.id))
+    );
+  } catch (e) { /* ignore */ }
+
+  closeUserDrawer();
+  renderPortal();
+
+  // 3) oblak
+  if (fbReady()) {
+    try {
+      for (const c of mine) {
+        if (FB.deleteComment) await FB.deleteComment(c.articleId, c.id);
+      }
+      if (FB.deleteRole) await FB.deleteRole(user.id);
+      if (FB.deleteUser) await FB.deleteUser(user.id, user.email);
+      setCloudStatus("online");
+    } catch (e) { setCloudStatus("offline"); }
+  }
+  await refreshPortal();
+}
+
+function closeUserDrawer() {
+  const drawer = $("userDrawer");
+  if (!drawer) return;
+  drawer.classList.add("hidden");
+  drawer.setAttribute("aria-hidden", "true");
+}
+
+/* ---------- Moj profil ---------- */
+function renderPortalProfile() {
+  if (!$("profileStats")) return;
+  const replies = portalComments.filter((c) => c.official);
+  const reached = new Set(replies.map((r) => {
+    const parent = portalComments.find((c) => c.id === r.parentId);
+    return parent ? parent.userId : null;
+  }).filter(Boolean));
+
+  $("profileStats").innerHTML = `
+    <div><b>${replies.length}</b><span>Uradnih odgovorov</span></div>
+    <div><b>${reached.size}</b><span>Nagovorjenih bralcev</span></div>
+    <div><b>${ownArticles.length}</b><span>Objavljenih novic</span></div>`;
+
+  $("profileReplies").innerHTML = replies.length
+    ? replies.slice(0, 6).map((r) => {
+        const parent = portalComments.find((c) => c.id === r.parentId);
+        return `
+        <div class="mini-row">
+          <img class="mini-av" src="${escapeHtml(r.avatar || profile.avatar)}" alt="" onerror="this.src='assets/mark.png'" />
+          <div class="mini-body">
+            <strong>${escapeHtml(parent ? "Odgovor: " + (parent.name || "bralec") : articleTitleById(r.articleId))}</strong>
+            <p>${escapeHtml(r.text || "")}</p>
+            <div class="meta"><span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(r.date))}</span></div>
+          </div>
+        </div>`;
+      }).join("")
+    : `<p class="admin-empty">Še niste odgovorili na noben komentar.</p>`;
 }
 
 /* ---------- Zagon ---------- */
