@@ -10,3 +10,6 @@ window.FIREBASE_CONFIG = {
   measurementId: "G-MC6BYYG33W"
 };
 window.SITE_URL = "https://astronomskiutrinek.top";
+
+/* Urednik — cel portal (nadzorna plošča) se odpri samo tem računom. */
+window.EDITOR_EMAILS = ["filip.knez@gmail.com"];
