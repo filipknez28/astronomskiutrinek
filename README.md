@@ -10,21 +10,22 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
   (`prijava.html`). Google Auth in Analytics sta vklopljena v `firebase-config.js`.
   Prijavljeni uporabniki **komentirajo, odgovarjajo** na komentarje in **urejajo/brišejo
   svoje komentarje**.
-- **Vloge (moderator / admin) in začasni bani** — urednik (kdo vnese kodo `1237`) lahko v
-  skrbniškem meniju poviša uporabnike v **moderatorje** (urejajo in brišejo poljubne
-  komentarje) ali **admini** (poleg tega urejajo članke) ter jih **začasno banira**
-  (1 / 7 / 30 dni) ali prekliče ban. Banan uporabnik ne more več komentirati.
+- **Vloge (moderator / admin) in začasni bani** — urednik lahko v nadzorni plošči
+  poviša uporabnike v **moderatorje** (urejajo in brišejo poljubne komentarje) ali
+  **admini** (poleg tega urejajo članke) ter jih **začasno banira** (1 / 7 / 30 dni)
+  ali prekliče ban. Banan uporabnik ne more več komentirati.
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
   in polje za iskanje po naslovih in vsebini.
 - **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
   lahko mirno prelistaš. Ni overlaya in te ne odnese na tuj portal.
 - **O strani** — ločena stran (`o-strani.html`), ne razdelek na dnu domače.
 - **Novice** — arhiv na `novice.html`.
-- **Skriti skrbniški meni** — sproži se z desetimi hitrimi dotiki na besedilo
-  »Vse pravice pridržane« na dnu strani (brez kakršnekoli animacije ali povratne
-  informacije). Odpre se **celostranska** prijava (`admin.html`); po kodi
-  (`1237`) je uredništvo prav tako celostransko. Uredniški članki se
-  shranijo lokalno v brskalnik in so takoj vidni na vrhu novice na strani.
+- **Nadzorna plošča urednika (`admin.html`)** — prijava poteka **z Google računom**
+  (`filip.knez@gmail.com`, nastavljivo v `firebase-config.js` → `EDITOR_EMAILS`).
+  Skrbniška koda in skriti sprožilec sta odstranjena. Ob shranjevanju je novica
+  **takoj objavljena**; pri urejanju objavljene novice gumb pokaže **»Popravi«**,
+  izvirni datum objave in vsi komentarji pa ostanejo nespremenjeni. Meni prikazuje
+  samo objavljene novice.
 - **Firebase Realtime Database (testni način)** — če je nastavljen, so uredniški članki
   shranjeni v oblak in vidni vsem obiskovalcem (glej spodaj).
 
@@ -56,6 +57,15 @@ Podatki so shranjeni v bazi pod temi potmi:
 - `/users/{id}` in `/usersByEmail/{key}` — profili uporabnikov
 
 Ni potreben noben API ključ — stran uporablja REST API brez SDK-ja (`firebase.js`).
+
+## Uredniški dostop (Google prijava)
+
+1. Odpri `/admin` in klikni **Prijava z Google**.
+2. Dostop ima samo račun iz `window.EDITOR_EMAILS` (`firebase-config.js`). Google
+   profil urednika se samodejno **združi** z uredniškim (vloga `admin` v `roles/`
+   in uredniška profilna slika iz `site/profile`).
+3. Obiskovalci se prijavljajo prek `prijava.html` in lahko samo komentirajo ter
+   urejajo svoj profil — celoten portal je rezerviran za urednika.
 
 ### Pravila (Rules) v testnem načinu
 

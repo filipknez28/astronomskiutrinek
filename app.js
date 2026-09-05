@@ -3,9 +3,6 @@
 /* ---------- Konstante ---------- */
 const LS_KEY = "astronomski-utrinek-articles-v1";
 const SESSION_KEY = "astronomski-utrinek-admin";
-const ADMIN_CODE = "1237";               // skrbniška koda
-const TRIGGER_TAPS = 3;                   // število tapov na skriti sprožilec
-const TAP_WINDOW_MS = 2500;               // max razmik med dvema tapoma
 
 /* Ni privzetih člankov — arhiv napolni uredništvo. */
 const seedArticles = [];
@@ -715,8 +712,8 @@ function renderFeed() {
     const total = allArticles().length;
     const emptyMsg = total
       ? "Ni zadetkov za izbrani filter ali iskalni niz."
-      : "Še ni objavljenih novic. Uredništvo jih bo kmalu dodalo.";
-    if (info) info.textContent = total ? emptyMsg : "uredništvo · Filip Knez";
+      : "Še ni objavljenih novic. Prva prihaja kmalu!";
+    if (info) info.textContent = total ? emptyMsg : "Filip Knez";
     if ($("feedStatus")) {
       $("feedStatus").classList.remove("hidden");
       const art = window.AUIcons && AUIcons.decoEmpty ? AUIcons.decoEmpty() : "";
@@ -755,12 +752,10 @@ function renderFeed() {
     })
     .join("");
 
-  const ownCount = list.filter((a) => a.own).length;
-  const srcText = "uredništvo · Filip Knez";
+  // Vse objavljene novice so uredniške — prikaži le preprost števec in avtorja.
   const nPlural = (n) => (n === 1 ? "novica" : n === 2 ? "novici" : n === 3 || n === 4 ? "novice" : "novic");
-  const oPlural = (n) => (n === 1 ? "ka" : n === 2 ? "ki" : n === 3 || n === 4 ? "ke" : "kih");
   if (info) {
-    info.textContent = `${list.length} ${nPlural(list.length)}${ownCount ? ` (od tega ${ownCount} uredniš${oPlural(ownCount)})` : ""} • ${srcText}`;
+    info.textContent = `${list.length} ${nPlural(list.length)} • Filip Knez`;
   }
 
   feed.querySelectorAll(".news-card").forEach((card) => {
@@ -929,58 +924,76 @@ function hideModal(id) {
   el.setAttribute("aria-hidden", "true");
 }
 
-/* ---------- Skriti sprožilec: 3 dotiki, brez povratne informacije ---------- */
-let tapCount = 0;
-let lastTapAt = 0;
+/* ---------- Skriti sprožilec je odstranjen — uredništvo se odpre z Google prijavo ---------- */
 
-function initSecretTrigger() {
-  const trigger = $("secretTrigger");
-  if (!trigger) return;
-  trigger.addEventListener("pointerdown", (e) => {
-    e.preventDefault(); // brez kakršnekoli animacije ali označevanja
-    const now = Date.now();
-    if (now - lastTapAt > TAP_WINDOW_MS) tapCount = 0;
-    lastTapAt = now;
-    tapCount += 1;
-    if (tapCount >= TRIGGER_TAPS) {
-      tapCount = 0;
-      if (PAGE === "admin") {
-        if (isAdmin()) openAdmin();
-        else if ($("adminCode")) $("adminCode").focus();
-      } else {
-        navigate("admin.html");
-      }
-    }
-  });
+/* ---------- Uredniški dostop: prijava z Google ---------- */
+/* Seznam uredniških e-poštnih naslovov (nastavljivo v firebase-config.js). */
+function editorEmailList() {
+  if (window.AUAuth && AUAuth.editorEmails) return AUAuth.editorEmails();
+  return ["filip.knez@gmail.com"];
 }
 
-/* ---------- Skrbniški dostop ---------- */
+/* Lastnik portala: stara skrbniška seja ALI prijavljen Google račun urednika. */
+function isOwner() {
+  if (sessionStorage.getItem(SESSION_KEY) === "1") return true;
+  const u = currentUser();
+  return !!u && editorEmailList().includes(String(u.email || "").trim().toLowerCase());
+}
+/* Združljivost: prejšnji isAdmin = dostop do uredništva. */
 function isAdmin() {
-  return sessionStorage.getItem(SESSION_KEY) === "1";
+  return isOwner();
 }
 
-function initLogin() {
-  const codeInput = $("adminCode");
+function initEditorLogin() {
   const err = $("loginError");
-  if (!codeInput || !$("submitCode")) return;
-
-  const tryLogin = () => {
-    if (codeInput.value.trim() === ADMIN_CODE) {
-      sessionStorage.setItem(SESSION_KEY, "1");
-      codeInput.value = "";
-      if (err) err.classList.add("hidden");
-      hideModal("loginModal");
-      openAdmin();
-    } else {
-      if (err) err.classList.remove("hidden");
-      codeInput.select();
-    }
+  const showErr = (msg) => {
+    if (!err) return;
+    err.textContent = msg || "";
+    err.classList.toggle("hidden", !msg);
   };
-
-  $("submitCode").addEventListener("click", tryLogin);
-  codeInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); tryLogin(); }
+  const googleBtn = $("googleLoginBtn");
+  if (googleBtn) {
+    googleBtn.addEventListener("click", async () => {
+      if (!window.AUAuth || !AUAuth.googleReady()) {
+        showErr("Google prijava ni na voljo — preveri Firebase nastavitve (apiKey/authDomain).");
+        return;
+      }
+      googleBtn.disabled = true;
+      showErr("");
+      try {
+        const u = await AUAuth.loginGoogle();
+        if (u === null) return; // preusmeritev na Google — nadaljujemo po vrnitvi
+        if (isOwner()) {
+          enterEditor();
+        } else {
+          showErr("Ta račun (" + (u.email || "brez e-pošte") + ") ni uredniški. Prijavi se z " + editorEmailList().join(", ") + ".");
+        }
+      } catch (e) {
+        showErr(e.message || "Prijava ni uspela.");
+      } finally {
+        googleBtn.disabled = false;
+      }
+    });
+  }
+  // Če je Google seja že obnovljena (npr. po preusmeritvi), odpri nadzorno ploščo.
+  window.addEventListener("au-auth", () => {
+    if (isOwner() && $("adminPanel") && $("adminPanel").classList.contains("hidden")) enterEditor();
   });
+}
+
+function enterEditor() {
+  const u = currentUser();
+  if (u) {
+    // Urednik v oblaku vedno velja za admina (vidno tudi v seznamu uporabnikov).
+    roles[u.id] = { ...(roles[u.id] || getRoleForUser(u.id)), role: "admin" };
+    saveLocalRoles();
+    if (fbReady() && FB.saveRole) {
+      FB.saveRole(u.id, { ...roles[u.id], email: u.email, name: u.name, updatedAt: Date.now() })
+        .catch(() => { /* offline */ });
+    }
+  }
+  hideModal("loginModal");
+  openAdmin();
 }
 
 /* ---------- Firebase oblak (opcijsko — glej firebase.js) ---------- */
@@ -1063,6 +1076,17 @@ function openAdmin() {
   editingId = null;
   hideModal("loginModal");
   showModal("adminPanel");
+  const emailEl = $("ownerEmail");
+  if (emailEl) {
+    const u = currentUser();
+    if (u && u.email) {
+      emailEl.textContent = u.email;
+      emailEl.classList.remove("hidden");
+    } else {
+      emailEl.textContent = "";
+      emailEl.classList.add("hidden");
+    }
+  }
   resetForm();
   renderAdminList();
   if ($("usersList")) renderUsersList();
@@ -1084,11 +1108,13 @@ function statusMeta(a) {
 function renderAdminList() {
   const ul = $("adminList");
   if (!ul) return;
-  const sorted = [...ownArticles].sort((a, b) => (a.date < b.date ? 1 : -1));
+  // V meniju so samo članki, ki so že objavljeni (osnutki in prihodnje objave ostanejo skriti).
+  const sorted = [...ownArticles].filter(isPublicVisible).sort((a, b) => (a.date < b.date ? 1 : -1));
   ul.innerHTML = sorted
     .map((a) => {
       const st = statusMeta(a);
-      const badge = st.label ? `<span class="admin-status ${st.cls}">${st.label}</span>` : "";
+      // Vse shranjene novice so objavljene — značka se pokaže le pri posebnih statusih.
+      const badge = st.cls !== "status-published" ? `<span class="admin-status ${st.cls}">${st.label}</span>` : "";
       return `
       <li class="admin-list-item ${a.id === editingId ? "is-editing" : ""}" data-id="${escapeHtml(a.id)}">
         <div class="admin-item-text">
@@ -1100,7 +1126,10 @@ function renderAdminList() {
       </li>`;
     })
     .join("");
-  if ($("adminListEmpty")) $("adminListEmpty").classList.toggle("hidden", sorted.length > 0);
+  if ($("adminListEmpty")) {
+    $("adminListEmpty").textContent = "Še ni objavljenih člankov. Napiši prvo novico in klikni Objavi!";
+    $("adminListEmpty").classList.toggle("hidden", sorted.length > 0);
+  }
 
   ul.querySelectorAll(".admin-list-item").forEach((li) => {
     li.addEventListener("click", (e) => {
@@ -1130,6 +1159,7 @@ function loadIntoForm(id) {
   if (!a) return;
   editingId = a.id;
   $("formTitle").textContent = "Urejanje: " + a.title;
+  if ($("publishBtn")) $("publishBtn").textContent = "Popravi";
   $("fTitle").value = a.title;
   paintCategorySelect(a.category);
   $("fImage").value = a.image || "";
@@ -1155,6 +1185,7 @@ function loadIntoForm(id) {
 function resetForm() {
   editingId = null;
   if ($("formTitle")) $("formTitle").textContent = "Nova novica";
+  if ($("publishBtn")) $("publishBtn").textContent = "Objavi";
   if ($("fTitle")) $("fTitle").value = "";
   if ($("fCategory")) $("fCategory").value = "Vesolje";
   if ($("fImage")) $("fImage").value = "";
@@ -1304,20 +1335,12 @@ function initAdmin() {
     });
   }
   if ($("adminLogout")) {
-    $("adminLogout").addEventListener("click", () => {
+    $("adminLogout").addEventListener("click", async () => {
       sessionStorage.removeItem(SESSION_KEY);
+      try { if (window.AUAuth) AUAuth.logout(); } catch (e) { /* ignore */ }
+      editingId = null;
       hideModal("adminPanel");
       showModal("loginModal");
-      if ($("adminCode")) $("adminCode").focus();
-    });
-  }
-
-  if ($("fStatus")) $("fStatus").addEventListener("change", syncSchedWrap);
-  if ($("saveDraftBtn")) {
-    $("saveDraftBtn").addEventListener("click", () => {
-      if ($("fStatus")) $("fStatus").value = "draft";
-      syncSchedWrap();
-      $("articleForm").requestSubmit();
     });
   }
 
@@ -1334,19 +1357,7 @@ function initAdmin() {
     const content = $("fContent").value.trim();
     if (!title || !summary || !content) return;
 
-    const status = ($("fStatus") && $("fStatus").value) || "published";
-    let publishAt = "";
-    if (status === "scheduled") {
-      publishAt = $("fPublishAt") && $("fPublishAt").value;
-      if (!publishAt) {
-        alert("Za načrtovano objavo izberi datum in čas objave.");
-        if ($("fPublishAt")) $("fPublishAt").focus();
-        return;
-      }
-      // normaliziraj na lokalni ISO (datetime-local vrne brez časovnega pasu)
-      const iso = new Date(publishAt.replace("T", "T") + ":00");
-      publishAt = isNaN(iso.getTime()) ? publishAt : iso.toISOString();
-    }
+    const existing = editingId ? ownArticles.find((x) => x.id === editingId) : null;
 
     const data = {
       title,
@@ -1357,16 +1368,23 @@ function initAdmin() {
       imageY: Number(($("fImageY") && $("fImageY").value) || 50),
       imageZ: Number(($("fImageZ") && $("fImageZ").value) || 1),
       category: $("fCategory").value,
-      date: new Date().toISOString().slice(0, 10),
       own: true,
       author: profile.name,
       authorImage: profile.avatar,
-      status,
-      publishAt: status === "scheduled" ? publishAt : ""
+      // Shranjevanje vedno objavi — brez osnutkov in načrtovanja.
+      status: "published",
+      publishAt: (existing && existing.publishAt) || ""
     };
+    if (existing) {
+      // Popravek objavljene novice: datum objave in komentarji (isti ID) ostanejo nespremenjeni.
+      data.editedAt = new Date().toISOString();
+    } else {
+      // Nova novica: shrani in objavi takoj z današnjim datumom.
+      data.date = new Date().toISOString().slice(0, 10);
+    }
 
     let article;
-    if (editingId) {
+    if (existing) {
       const idx = ownArticles.findIndex((x) => x.id === editingId);
       if (idx !== -1) {
         ownArticles[idx] = { ...ownArticles[idx], ...data };
@@ -1460,9 +1478,6 @@ function saveRoleToCloud(userId, obj) {
 }
 function getRoleForUser(userId) {
   return roles[userId] || { role: "user", bannedUntil: null };
-}
-function isOwner() {
-  return sessionStorage.getItem(SESSION_KEY) === "1";
 }
 function currentUser() {
   return window.AUAuth && AUAuth.current ? AUAuth.current() : null;
@@ -1808,7 +1823,6 @@ function attachUserEvents(id) {
 }
 
 function initUsersAdmin() {
-  if (!isAdmin()) return;
   if (!$("usersList")) return;
   renderUsersList();
   window.addEventListener("au-auth", renderUsersList);
@@ -1940,7 +1954,6 @@ function initAuthPage() {
 async function init() {
   buildStarfield();
   initChrome();
-  initSecretTrigger();
   syncRolesFromCloud();
   await syncProfileFromCloud();
   await syncCategoriesFromCloud();
@@ -1952,15 +1965,16 @@ async function init() {
   }
 
   if (PAGE === "admin") {
-    initLogin();
+    initEditorLogin();
     initAdmin();
     initUsersAdmin();
     await syncFromCloud();
     await syncProfileFromCloud();
     await syncCategoriesFromCloud();
     await syncRolesFromCloud();
-    if (isAdmin()) openAdmin();
-    else {
+    if (isOwner()) {
+      openAdmin();
+    } else {
       showModal("loginModal");
       hideModal("adminPanel");
     }

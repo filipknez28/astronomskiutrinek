@@ -3,6 +3,21 @@
   const USERS_KEY = "astronomski-utrinek-users-v1";
   const SESSION_KEY = "astronomski-utrinek-user";
 
+  /* E-poštni naslovi urednika — cel portal (nadzorna plošča) je samo za njega. */
+  function editorEmails() {
+    const list = Array.isArray(global.EDITOR_EMAILS) && global.EDITOR_EMAILS.length
+      ? global.EDITOR_EMAILS
+      : ["filip.knez@gmail.com"];
+    return list.map((e) => String(e || "").trim().toLowerCase()).filter(Boolean);
+  }
+  function isEditor(user) {
+    const email = String((user && user.email) || "").trim().toLowerCase();
+    return !!email && editorEmails().includes(email);
+  }
+  function isCurrentEditor() {
+    return isEditor(current());
+  }
+
   function loadUsers() {
     try {
       const raw = localStorage.getItem(USERS_KEY);
@@ -136,11 +151,49 @@
     return current();
   }
 
-  function logout() { setSession(null); }
+  function logout() {
+    setSession(null);
+    // Odjavi tudi Google sejo (če je SDK naložen), da odjava velja povsod.
+    if (global.firebase && global.firebase.auth) {
+      try { global.firebase.auth().signOut(); } catch (e) { /* ignore */ }
+    }
+  }
 
   function googleReady() {
     const cfg = global.FIREBASE_CONFIG || {};
     return !!(cfg.apiKey && cfg.authDomain && cfg.projectId);
+  }
+
+  function friendlyGoogleError(err) {
+    const code = String((err && err.code) || "");
+    if (/unauthorized-domain/.test(code)) {
+      const domain = (global.location && global.location.hostname) || "ta domena";
+      return "Domena „" + domain + "“ ni dovoljena za Google prijavo. V Firebase konzoli dodaj " +
+        "Authentication → Settings → Authorized domains.";
+    }
+    if (/network|timeout|internal/.test(code)) return "Google prijava ni uspela (omrežje). Poskusi znova.";
+    return (err && err.message) || "Google prijava ni uspela.";
+  }
+
+  /* Urednikov Google račun se združi z uredniškim: prijava z Google = isti človek kot redakcija. */
+  async function mergeEditorAccount(user) {
+    if (!isEditor(user) || !global.FB) return;
+    try {
+      if (global.FB.loadRoles && global.FB.saveRole) {
+        const all = await global.FB.loadRoles().catch(() => ({}));
+        const cur = (all && all[user.id]) || {};
+        await global.FB.saveRole(user.id, { ...cur, role: "admin", email: user.email, name: user.name, updatedAt: Date.now() });
+      }
+    } catch (e) { /* offline */ }
+    try {
+      if (global.FB.loadSiteProfile && global.FB.saveUser && user.id) {
+        const site = await global.FB.loadSiteProfile().catch(() => null);
+        // Uredniška profilna slika (site/profile) je glavna — združi jo z Google računom.
+        if (site && site.avatar) {
+          await global.FB.saveUser({ ...user, avatar: user.avatar || site.avatar, name: site.name || user.name });
+        }
+      }
+    } catch (e) { /* offline */ }
   }
 
   async function loginGoogle() {
@@ -150,9 +203,29 @@
     if (!global.firebase || !global.firebase.auth) {
       throw new Error("Firebase Auth se ni naložil. Osveži stran.");
     }
+    const authObj = global.firebase.auth();
     const provider = new global.firebase.auth.GoogleAuthProvider();
-    const cred = await global.firebase.auth().signInWithPopup(provider);
-    const g = cred.user;
+    provider.setCustomParameters({ prompt: "select_account" });
+    let g;
+    try {
+      const cred = await authObj.signInWithPopup(provider);
+      g = cred.user;
+    } catch (err) {
+      // Pojavno okno je blokirano (ali okolje ga ne podpira) → preusmeri celo stran.
+      const code = String((err && err.code) || "");
+      if (/popup-blocked|popup-request-pending|operation-not-supported-in-this-environment|cancelled-popup-request/.test(code)) {
+        await authObj.signInWithRedirect(provider);
+        return null; // nadaljujemo po povratku z redirecta (onAuthStateChanged most)
+      }
+      if (/popup-closed-by-user/.test(code)) throw new Error("Google prijava je bila preklicana.");
+      throw new Error(friendlyGoogleError(err));
+    }
+    if (!g) throw new Error("Google prijava ni uspela.");
+    return await adoptGoogleUser(g);
+  }
+
+  /* Prijavi Google uporabnika v aplikacijo (shrani profil, združi urednika, nastavi sejo). */
+  async function adoptGoogleUser(g) {
     const user = {
       id: g.uid,
       name: g.displayName || g.email,
@@ -166,9 +239,27 @@
     if (global.FB && FB.saveUser) {
       try { await FB.saveUser(user); } catch (e) { /* ignore */ }
     }
+    await mergeEditorAccount(user);
     setSession(user);
     return current();
   }
 
-  global.AUAuth = { current, register, login, logout, loginGoogle, googleReady, updateAvatar, updateName };
+  /* Most za Firebase Auth: obnovi sejo po redirectu in ob ponovnem zagonu strani. */
+  function watchFirebaseAuth() {
+    if (!global.firebase || !global.firebase.auth) return;
+    try {
+      global.firebase.auth().onAuthStateChanged((g) => {
+        if (!g || !g.email) return;
+        const sess = current();
+        if (sess && sess.id === g.uid) return;
+        adoptGoogleUser(g).catch(() => { /* ignore */ });
+      });
+    } catch (e) { /* ignore */ }
+  }
+
+  global.AUAuth = { current, register, login, logout, loginGoogle, googleReady, updateAvatar, updateName, isEditor, isCurrentEditor, editorEmails };
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchFirebaseAuth);
+    else watchFirebaseAuth();
+  }
 })(window);
