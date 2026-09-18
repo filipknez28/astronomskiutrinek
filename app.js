@@ -247,15 +247,37 @@ function paintChips() {
   ).join("");
 }
 
-function paintCategorySelect(selected) {
-  const sel = $("fCategory");
-  if (!sel) return;
-  const cur = selected || sel.value || categories[0] || "Vesolje";
-  const opts = categories.slice();
-  if (cur && !opts.includes(cur)) opts.unshift(cur);
-  sel.innerHTML = opts.map((c) =>
-    `<option value="${escapeHtml(c)}"${c === cur ? " selected" : ""}>${escapeHtml(c)}</option>`
-  ).join("");
+/* Kljukice za kategorije: članek jih lahko ima več.
+   `selected` je lahko seznam, niz ali nič — takrat ostane trenutna izbira v obrazcu. */
+function paintCategoryChecks(selected) {
+  const box = $("fCats");
+  if (!box) return;
+  const checkedNow = [...box.querySelectorAll("input[name='fCat']:checked")].map((i) => i.value);
+  let chosen;
+  if (Array.isArray(selected)) chosen = selected.map((c) => String(c || "").trim()).filter(Boolean);
+  else if (selected) chosen = [String(selected).trim()].filter(Boolean);
+  else chosen = checkedNow;
+
+  const list = categories.slice();
+  chosen.forEach((c) => { if (c && !list.includes(c)) list.push(c); });
+  if (!list.length) list.push("Vesolje");
+  const picked = chosen.filter((c) => list.includes(c));
+  const effective = picked.length ? picked : [list[0]];
+
+  box.innerHTML = list.map((c) => `
+    <label class="cat-check">
+      <input type="checkbox" name="fCat" value="${escapeHtml(c)}"${effective.includes(c) ? " checked" : ""} />
+      <span>${escapeHtml(c)}</span>
+    </label>`).join("");
+}
+
+/* Prebrane kategorije iz obrazca (prva je glavna). Vedno vsaj ena. */
+function formCategories() {
+  const box = $("fCats");
+  const picked = box
+    ? [...box.querySelectorAll("input[name='fCat']:checked")].map((i) => i.value)
+    : [];
+  return picked.length ? picked : [categories[0] || "Vesolje"];
 }
 
 function renderCatList() {
@@ -271,7 +293,7 @@ function renderCatList() {
 
 function paintCategoriesUI() {
   paintChips();
-  paintCategorySelect();
+  paintCategoryChecks();
   renderCatList();
 }
 
@@ -280,22 +302,42 @@ async function persistCategories(next, opts) {
   categories = normalizeCats(next);
   categoriesUpdatedAt = Date.now();
   saveCategoriesLocal();
+  const touched = [];
+
+  // Preimenovanje kategorije se prenese na vse članke (tudi tiste z več kategorijami).
   if (opts.rename && opts.rename.from && opts.rename.to && opts.rename.from !== opts.rename.to) {
     const from = opts.rename.from;
     const to = opts.rename.to;
-    const touched = [];
     ownArticles = ownArticles.map((a) => {
-      if (a.category !== from) return a;
-      const nextA = { ...a, category: to };
+      const cs = catsOf(a);
+      if (!cs.includes(from)) return a;
+      const nextA = withCats(a, cs.map((c) => (c === from ? to : c)));
       touched.push(nextA);
       return nextA;
     });
-    if (touched.length) {
-      saveArticles();
-      renderAdminList();
-      renderFeed();
-      for (let i = 0; i < touched.length; i++) await saveToCloud(touched[i]);
-    }
+  }
+
+  // Brisanje kategorije: članki ostanejo, izgubijo pa to kategorijo.
+  // Če bi članek ostal brez kategorije, dobi prvo preostalo, da je še naprej najden.
+  if (opts.remove) {
+    const gone = opts.remove;
+    const fallback = categories[0] || "";
+    ownArticles = ownArticles.map((a) => {
+      const cs = catsOf(a);
+      if (!cs.includes(gone)) return a;
+      let keep = cs.filter((c) => c !== gone);
+      if (!keep.length && fallback) keep = [fallback];
+      const nextA = withCats(a, keep);
+      touched.push(nextA);
+      return nextA;
+    });
+  }
+
+  if (touched.length) {
+    saveArticles();
+    renderAdminList();
+    renderFeed();
+    for (let i = 0; i < touched.length; i++) await saveToCloud(touched[i]);
   }
   paintCategoriesUI();
   if (fbReady() && FB.saveSiteCategories) {
@@ -348,16 +390,16 @@ function initCatAdmin() {
     if (!del) return;
     const name = del.getAttribute("data-cat-delete");
     if (!name) return;
-    const used = ownArticles.filter((a) => a.category === name).length;
+    const used = ownArticles.filter((a) => catsOf(a).includes(name)).length;
     const msg = used
-      ? `Kategorija „${name}“ je na ${used} člankih. Izbrisati? Članki ostanejo, le filter izgine.`
+      ? `Kategorija „${name}“ je na ${used} člankih. Izbrisati? Članki ostanejo, le ta kategorija se z njih odstrani.`
       : `Izbrisati kategorijo „${name}“?`;
     if (!confirm(msg)) return;
     if (categories.length <= 1) {
       alert("Vsaj ena kategorija mora ostati.");
       return;
     }
-    await persistCategories(categories.filter((c) => c !== name));
+    await persistCategories(categories.filter((c) => c !== name), { remove: name });
   });
   document.addEventListener("change", async (e) => {
     const input = e.target.closest(".cat-item-name");
@@ -670,7 +712,34 @@ async function fetchJson(url, ms = 9000) {
 }
 
 function pickFeatured() {
-  featured = allArticles().find(isPublicVisible) || null;
+  const visible = allArticles().filter(isPublicVisible);
+  // Ročno označena novica (⭐ v nadzorni plošči) je izbor urednika; sicer najnovejša.
+  featured = visible.find((a) => a && a.featured) || visible[0] || null;
+}
+
+/* ---------- Kategorije članka ----------
+   Članek ima lahko več kategorij: `categories: ["Vesolje", "Rakete"]`.
+   Polje `category` (prva kategorija) ostane zaradi združljivosti s starimi članki. */
+function catsOf(a) {
+  if (!a) return [];
+  if (Array.isArray(a.categories)) {
+    const list = a.categories
+      .map((c) => String(c || "").trim())
+      .filter((c, i, arr) => c && arr.indexOf(c) === i);
+    if (list.length) return list;
+  }
+  const single = String(a.category || "").trim();
+  return single ? [single] : [];
+}
+function catsLabel(a, sep = " · ") {
+  return catsOf(a).join(sep);
+}
+/* Vrni kopijo članka z urejenim seznamom kategorij (in posodobljeno glavno kategorijo). */
+function withCats(a, list) {
+  const clean = (Array.isArray(list) ? list : [])
+    .map((c) => String(c || "").trim())
+    .filter((c, i, arr) => c && arr.indexOf(c) === i);
+  return { ...a, categories: clean, category: clean[0] || "" };
 }
 
 function allArticles() {
@@ -693,7 +762,8 @@ function isPublicVisible(a) {
   return true;
 }
 function matchesFilters(a) {
-  if (currentFilter !== "Vse" && a.category !== currentFilter) return false;
+  // Članek najdeš pod katerokoli izmed njegovih kategorij.
+  if (currentFilter !== "Vse" && !catsOf(a).includes(currentFilter)) return false;
   if (searchTerm) {
     const hay = (a.title + " " + a.summary + " " + a.content).toLowerCase();
     if (!hay.includes(searchTerm)) return false;
@@ -710,14 +780,24 @@ function renderFeed() {
   if (list.length === 0) {
     feed.innerHTML = "";
     const total = allArticles().length;
-    const emptyMsg = total
-      ? "Ni zadetkov za izbrani filter ali iskalni niz."
-      : "Še ni objavljenih novic. Prva prihaja kmalu!";
-    if (info) info.textContent = total ? emptyMsg : "Filip Knez";
+    // Dokler oblak še ni odgovoril, ne trdimo, da novic ni — prikažemo nalaganje.
+    const loading = !total && !cloudSyncDone && fbReady();
+    const emptyMsg = loading
+      ? "Nalagam novice …"
+      : total
+        ? "Ni zadetkov za izbrani filter ali iskalni niz."
+        : "Še ni objavljenih novic. Prva prihaja kmalu!";
+    if (info) info.textContent = loading
+      ? "Nalagam novice …"
+      : (total ? emptyMsg : "Filip Knez");
     if ($("feedStatus")) {
-      $("feedStatus").classList.remove("hidden");
-      const art = window.AUIcons && AUIcons.decoEmpty ? AUIcons.decoEmpty() : "";
-      $("feedStatus").innerHTML = art + "<p>" + emptyMsg + "</p>";
+      if (loading) {
+        $("feedStatus").classList.add("hidden");
+      } else {
+        $("feedStatus").classList.remove("hidden");
+        const art = window.AUIcons && AUIcons.decoEmpty ? AUIcons.decoEmpty() : "";
+        $("feedStatus").innerHTML = art + "<p>" + emptyMsg + "</p>";
+      }
     }
     return;
   }
@@ -725,9 +805,12 @@ function renderFeed() {
 
   feed.innerHTML = list
     .map((a) => {
-      const badges =
-        `<span class="badge">${escapeHtml(a.category)}</span>` +
-        (a.own ? `<span class="badge badge-own">${ico("comet")} Uredniška</span>` : "");
+      // Značke so kategorije — vse novice so uredniške, zato značke „Uredniška“ ni več.
+      const badges = catsOf(a).length
+        ? `<div class="card-badges">` +
+          catsOf(a).map((c) => `<span class="badge">${escapeHtml(c)}</span>`).join("") +
+          `</div>`
+        : "";
       const focus = imageFocus(a);
       const img = a.image
         ? `<img src="${escapeHtml(a.image)}" alt="${escapeHtml(a.title)}" loading="lazy"
@@ -838,9 +921,8 @@ function paintArticle(a) {
     applyFocus($("articleModalImg"), a);
   }
   if ($("articleModalBadge")) {
-    $("articleModalBadge").innerHTML = a.own
-      ? ico("comet") + " Uredniška"
-      : escapeHtml(a.category || "");
+    // Vse novice so uredniške — na članku so vidne njegove kategorije.
+    $("articleModalBadge").textContent = catsLabel(a) || String(a.category || "");
   }
   if ($("articleModalDate")) $("articleModalDate").textContent = formatDate(a.date);
   $("articleModalTitle").textContent = a.title;
@@ -875,7 +957,7 @@ function paintByline(a) {
     <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" />
     <div>
       <strong>${escapeHtml(name)}</strong>
-      <span>${escapeHtml(a.category || "")} · ${escapeHtml(formatDate(a.date))}</span>
+      <span>${escapeHtml(catsLabel(a) || a.category || "")} · ${escapeHtml(formatDate(a.date))}</span>
     </div>`;
 }
 
@@ -930,7 +1012,7 @@ function hideModal(id) {
 /* Seznam uredniških e-poštnih naslovov (nastavljivo v firebase-config.js). */
 function editorEmailList() {
   if (window.AUAuth && AUAuth.editorEmails) return AUAuth.editorEmails();
-  return ["filip.knez@gmail.com"];
+  return ["filip.knez28@gmail.com", "filip.knez@gmail.com"];
 }
 
 /* Lastnik portala: stara skrbniška seja ALI prijavljen Google račun urednika. */
@@ -998,6 +1080,9 @@ function enterEditor() {
 
 /* ---------- Firebase oblak (opcijsko — glej firebase.js) ---------- */
 let cloudStatus = "not-configured";
+/* Ali je sinhronizacija z oblakom že končana (uspešno ali ne)?
+   Dokler ni, prazen seznam na naslovnici pomeni „nalagam“ in ne „ni novic“. */
+let cloudSyncDone = false;
 
 function fbReady() {
   try {
@@ -1026,6 +1111,7 @@ function setCloudStatus(state) {
 async function syncFromCloud() {
   if (!fbReady()) {
     setCloudStatus("not-configured");
+    cloudSyncDone = true;
     return;
   }
   try {
@@ -1037,11 +1123,15 @@ async function syncFromCloud() {
         if (!map.has(a.id)) map.set(a.id, a);
       });
       ownArticles = [...map.values()];
+      // Predpomnilnik brskalnika: ob naslednji osvežitvi se stran izriše takoj,
+      // še preden Firebase odgovori.
       saveArticles();
     }
     setCloudStatus("online");
   } catch (e) {
     setCloudStatus("offline");
+  } finally {
+    cloudSyncDone = true;
   }
 }
 
@@ -1117,11 +1207,18 @@ function renderAdminList() {
       const st = statusMeta(a);
       // Vse shranjene novice so objavljene — značka se pokaže le pri posebnih statusih.
       const badge = st.cls !== "status-published" ? `<span class="admin-status ${st.cls}">${st.label}</span>` : "";
+      const isPick = !!a.featured;
+      const starTitle = isPick
+        ? "Odstrani z naslovnice (ni več izbor urednika)"
+        : "Označi kot izbor urednika (velik heroj na naslovnici)";
       return `
       <li class="admin-list-item ${a.id === editingId ? "is-editing" : ""}" data-id="${escapeHtml(a.id)}">
+        <button type="button" class="admin-item-star${isPick ? " is-on" : ""}" data-feature="${escapeHtml(a.id)}"
+                aria-pressed="${isPick ? "true" : "false"}" title="${starTitle}"
+                aria-label="${starTitle}">${ico("star")}</button>
         <div class="admin-item-text">
-          <h5>${escapeHtml(a.title)} ${badge}</h5>
-          <p>${escapeHtml(a.category)} • ${formatDate(a.date)}</p>
+          <h5>${escapeHtml(a.title)} ${badge}${isPick ? `<span class="admin-status status-pick">Izbor urednika</span>` : ""}</h5>
+          <p>${escapeHtml(catsLabel(a, " · "))} • ${formatDate(a.date)}</p>
         </div>
         <button class="admin-item-delete" data-delete="${escapeHtml(a.id)}"
                 title="Izbriši članek" aria-label="Izbriši članek">${ico("trash")}</button>
@@ -1136,9 +1233,40 @@ function renderAdminList() {
   ul.querySelectorAll(".admin-list-item").forEach((li) => {
     li.addEventListener("click", (e) => {
       if (e.target.closest("[data-delete]")) return; // klik na koš za brisanje
+      if (e.target.closest("[data-feature]")) return; // klik na zvezdico (izbor urednika)
       loadIntoForm(li.dataset.id);
     });
   });
+
+  // ⭐ Izbor urednika: hkrati je označen največ en članek.
+  ul.querySelectorAll("[data-feature]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await toggleFeatured(btn.getAttribute("data-feature"));
+    });
+  });
+}
+
+/* Označi/odznači članek kot izbor urednika in prejšnjo izbiro samodejno odznači. */
+async function toggleFeatured(id) {
+  const target = ownArticles.find((a) => a.id === id);
+  if (!target) return;
+  const next = !target.featured;
+  const touched = [];
+  ownArticles = ownArticles.map((a) => {
+    const should = a.id === id ? next : false;
+    if (!!a.featured === should) return a;
+    const updated = { ...a, featured: should };
+    touched.push(updated);
+    return updated;
+  });
+  saveArticles();
+  renderAdminList();
+  pickFeatured();
+  renderFeatured();
+  renderFeed();
+  for (let i = 0; i < touched.length; i++) await saveToCloud(touched[i]);
 }
 
 function toLocalInputValue(iso) {
@@ -1163,7 +1291,7 @@ function loadIntoForm(id) {
   $("formTitle").textContent = "Urejanje: " + a.title;
   if ($("publishBtn")) $("publishBtn").textContent = "Popravi";
   $("fTitle").value = a.title;
-  paintCategorySelect(a.category);
+  paintCategoryChecks(catsOf(a));
   $("fImage").value = a.image || "";
   if ($("fImageX")) $("fImageX").value = imageFocus(a).x;
   if ($("fImageY")) $("fImageY").value = imageFocus(a).y;
@@ -1189,7 +1317,8 @@ function resetForm() {
   if ($("formTitle")) $("formTitle").textContent = "Nova novica";
   if ($("publishBtn")) $("publishBtn").textContent = "Objavi";
   if ($("fTitle")) $("fTitle").value = "";
-  if ($("fCategory")) $("fCategory").value = "Vesolje";
+  // Privzeto je obkljukana prva kategorija.
+  paintCategoryChecks([categories[0] || "Vesolje"]);
   if ($("fImage")) $("fImage").value = "";
   if ($("fImageX")) $("fImageX").value = "50";
   if ($("fImageY")) $("fImageY").value = "50";
@@ -1329,6 +1458,15 @@ function initAdmin() {
   initCatAdmin();
   paintProfile();
   paintCategoriesUI();
+  // Članek mora imeti vsaj eno kategorijo — če uporabnik odkljuka vse, se prva vrne.
+  const catBox = $("fCats");
+  if (catBox && !catBox.dataset.bound) {
+    catBox.dataset.bound = "1";
+    catBox.addEventListener("change", () => {
+      const boxes = [...catBox.querySelectorAll("input[name='fCat']")];
+      if (!boxes.some((b) => b.checked) && boxes[0]) boxes[0].checked = true;
+    });
+  }
   if ($("newArticle")) $("newArticle").addEventListener("click", resetForm);
   if ($("resetForm")) $("resetForm").addEventListener("click", resetForm);
   if ($("adminClose")) {
@@ -1363,6 +1501,9 @@ function initAdmin() {
 
     const existing = editingId ? ownArticles.find((x) => x.id === editingId) : null;
 
+    // Več kategorij: prva obkljukana je glavna (`category`), vse so v `categories`.
+    const cats = formCategories();
+
     const data = {
       title,
       summary,
@@ -1371,7 +1512,8 @@ function initAdmin() {
       imageX: Number(($("fImageX") && $("fImageX").value) || 50),
       imageY: Number(($("fImageY") && $("fImageY").value) || 50),
       imageZ: Number(($("fImageZ") && $("fImageZ").value) || 1),
-      category: $("fCategory").value,
+      category: cats[0],
+      categories: cats,
       own: true,
       author: profile.name,
       authorImage: profile.avatar,
@@ -2740,7 +2882,10 @@ async function init() {
   renderFeed();
   initReveal();
 
+  // Takojšen prikaz iz predpomnilnika brskalnika (novice + izbor urednika),
+  // šele nato tiha posodobitev iz oblaka.
   pickFeatured();
+  renderFeatured();
   await syncFromCloud();
   await syncCategoriesFromCloud();
   pickFeatured();

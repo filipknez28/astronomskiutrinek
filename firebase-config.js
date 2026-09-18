@@ -12,4 +12,4 @@ window.FIREBASE_CONFIG = {
 window.SITE_URL = "https://astronomskiutrinek.top";
 
 /* Urednik — cel portal (nadzorna plošča) se odpri samo tem računom. */
-window.EDITOR_EMAILS = ["filip.knez@gmail.com"];
+window.EDITOR_EMAILS = ["filip.knez28@gmail.com", "filip.knez@gmail.com"];
