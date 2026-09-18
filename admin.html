@@ -159,9 +159,10 @@
                     <label for="fTitle">Naslov *</label>
                     <input id="fTitle" class="text-input" type="text" required placeholder="Npr. Odkrit nov planet v bližini Proksime" />
                   </div>
-                  <div class="form-field">
-                    <label for="fCategory">Kategorija</label>
-                    <select id="fCategory" class="text-input"></select>
+                  <div class="form-field grow">
+                    <label id="fCatsLabel">Kategorije (obkljukaj eno ali več)</label>
+                    <div id="fCats" class="cat-checks" role="group" aria-labelledby="fCatsLabel"></div>
+                    <p class="field-hint">Prva obkljukana je glavna kategorija. Bralec najde novico pod katerokoli izmed izbranih.</p>
                   </div>
                 </div>
                 <div class="form-field">

@@ -7,7 +7,7 @@
   function editorEmails() {
     const list = Array.isArray(global.EDITOR_EMAILS) && global.EDITOR_EMAILS.length
       ? global.EDITOR_EMAILS
-      : ["filip.knez@gmail.com"];
+      : ["filip.knez28@gmail.com", "filip.knez@gmail.com"];
     return list.map((e) => String(e || "").trim().toLowerCase()).filter(Boolean);
   }
   function isEditor(user) {

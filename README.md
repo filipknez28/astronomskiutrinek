@@ -15,13 +15,22 @@ Sodobna spletna stran z astronomskimi novicami v slovenščini.
   **admini** (poleg tega urejajo članke) ter jih **začasno banira** (1 / 7 / 30 dni)
   ali prekliče ban. Banan uporabnik ne more več komentirati.
 - **Filtriranje in iskanje** — kategorije (Vesolje, Planeti, Rakete, Opazovanje, Raziskave)
-  in polje za iskanje po naslovih in vsebini.
+  in polje za iskanje po naslovih in vsebini. **Članek spada lahko v več kategorij**
+  (kljukice v obrazcu); bralec ga najde pod katerokoli izmed njih.
+- **Takojšen prikaz ob osvežitvi** — novice in izbor urednika so shranjeni v
+  **predpomnilniku brskalnika**, zato se stran izriše s pravimi vsebinami takoj,
+  še preden Firebase odgovori. Sinhronizacija z oblakom teče v ozadju in tiho
+  posodobi prikaz, če je bilo kaj objavljeno drugje.
 - **Branje člankov** — klik na novico odpre **lastno stran** (`clanek.html`), ki jo
   lahko mirno prelistaš. Ni overlaya in te ne odnese na tuj portal.
 - **O strani** — ločena stran (`o-strani.html`), ne razdelek na dnu domače.
 - **Novice** — arhiv na `novice.html`.
+- **Izbor urednika** — vsak članek v meniju nadzorne plošče ima **⭐ zvezdico**; klik
+  nanjo označi novico kot izbor urednika (hkrati je označen samo en, prejšnja izbira se
+  samodejno odznači). Izbira se shrani v Firebase, veliki heroj na naslovnici pa takoj
+  pokaže označeno novico.
 - **Nadzorna plošča urednika (`admin.html`)** — prijava poteka **z Google računom**
-  (`filip.knez@gmail.com`, nastavljivo v `firebase-config.js` → `EDITOR_EMAILS`).
+  (`filip.knez28@gmail.com`, nastavljivo v `firebase-config.js` → `EDITOR_EMAILS`).
   Skrbniška koda in skriti sprožilec sta odstranjena. Ob shranjevanju je novica
   **takoj objavljena**; pri urejanju objavljene novice gumb pokaže **»Popravi«**,
   izvirni datum objave in vsi komentarji pa ostanejo nespremenjeni. Meni prikazuje
@@ -50,7 +59,9 @@ Realtime Database v testnem načinu postanejo vidni vsem obiskovalcem strani.
 
 Podatki so shranjeni v bazi pod temi potmi:
 
-- `/articles/{id}` — uredniški članki
+- `/articles/{id}` — uredniški članki (`categories` je seznam kategorij, `category`
+  glavna kategorija zaradi združljivosti s starimi članki, `featured: true` pa
+  označuje izbor urednika na naslovnici)
 - `/comments/{articleId}/{commentId}` — komentarji (vključno z odgovori)
 - `/roles/{userId}` — vloge uporabnikov (`role`: `user` / `moderator` / `admin`) in
   `bannedUntil` (časovni žig do katerega je uporabnik začasno banan)
@@ -61,7 +72,8 @@ Ni potreben noben API ključ — stran uporablja REST API brez SDK-ja (`firebase
 ## Uredniški dostop (Google prijava)
 
 1. Odpri `/admin` in klikni **Prijava z Google**.
-2. Dostop ima samo račun iz `window.EDITOR_EMAILS` (`firebase-config.js`). Google
+2. Dostop ima samo račun iz `window.EDITOR_EMAILS` (`firebase-config.js`; trenutno
+   `filip.knez28@gmail.com` in `filip.knez@gmail.com`). Google
    profil urednika se samodejno **združi** z uredniškim (vloga `admin` v `roles/`
    in uredniška profilna slika iz `site/profile`).
 3. Obiskovalci se prijavljajo prek `prijava.html` in lahko samo komentirajo ter

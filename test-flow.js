@@ -10,7 +10,7 @@ const iconsJs = fs.readFileSync(path.join(__dirname, "icons.js"), "utf8");
 const EDITOR_SESSION = {
   id: "editor-google-1",
   name: "Filip Knez",
-  email: "filip.knez@gmail.com",
+  email: "filip.knez28@gmail.com",
   avatar: "",
   provider: "google"
 };
@@ -104,6 +104,13 @@ const check = (name, cond) => {
 };
 const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
+/* Obkljukaj kategorije v obrazcu (članek jih lahko ima več). */
+function setFormCats(win, cats) {
+  const boxes = win.document.querySelectorAll("#fCats input[name='fCat']");
+  boxes.forEach((b) => { b.checked = cats.includes(b.value); });
+  return boxes.length;
+}
+
 (async () => {
   console.log("▶ Zagon aplikacije…");
   const FB = makeFB();
@@ -141,8 +148,8 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("firebase-config.js vsebuje URL prave baze",
     fbConfig.includes("astronomski-utrinek-2026-default-rtdb.europe-west1.firebasedatabase.app") &&
     !fbConfig.includes("VAS-PROJEKT"));
-  check("firebase-config.js definira uredniški e-naslov",
-    fbConfig.includes("EDITOR_EMAILS") && fbConfig.includes("filip.knez@gmail.com"));
+  check("firebase-config.js definira popravljeni uredniški e-naslov (filip.knez28@gmail.com)",
+    fbConfig.includes("EDITOR_EMAILS") && fbConfig.includes("filip.knez28@gmail.com"));
   check("robots.txt in sitemap obstajata",
     fs.existsSync(path.join(__dirname, "robots.txt")) &&
     fs.existsSync(path.join(__dirname, "sitemap.xml")) &&
@@ -154,7 +161,9 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Na domači strani ni overlaya članka", !document.getElementById("articleModal"));
 
   // 2. Google prijava: urednik prepoznan, drug uporabnik ne
-  check("AUAuth prepozna urednika po e-pošti",
+  check("AUAuth prepozna urednika po popravljenem e-naslovu",
+    home.AUAuth.isEditor({ email: "Filip.Knez28@Gmail.com" }) === true);
+  check("AUAuth prepozna urednika tudi po starem e-naslovu",
     home.AUAuth.isEditor({ email: "Filip.Knez@Gmail.com" }) === true);
   check("Obiskovalec ni urednik",
     home.AUAuth.isEditor({ email: "nekdo@drugo.si" }) === false);
@@ -197,7 +206,7 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   check("Uredniški profil kaže Filipa Kneza",
     ownerAdmin.document.getElementById("profileName").textContent.includes("Filip Knez"));
   check("Prikazan je urednikov e-naslov",
-    ownerAdmin.document.getElementById("ownerEmail").textContent === "filip.knez@gmail.com");
+    ownerAdmin.document.getElementById("ownerEmail").textContent === "filip.knez28@gmail.com");
   check("Urejevalnik ima orodja za slike in povezave",
     !!ownerAdmin.document.getElementById("editorToolbar") &&
     !!ownerAdmin.document.querySelector("[data-cmd='link']") &&
@@ -205,7 +214,7 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 
   // 5. Nova novica: shrani in objavi takoj
   ownerAdmin.document.getElementById("fTitle").value = "Testna novica iz admina";
-  ownerAdmin.document.getElementById("fCategory").value = "Vesolje";
+  setFormCats(ownerAdmin, ["Vesolje"]);
   ownerAdmin.document.getElementById("fSummary").value = "To je povzetek testne novice.";
   ownerAdmin.document.getElementById("fContent").value = "Prvi odstavek.\n\nDrugi odstavek.";
   ownerAdmin.document.getElementById("articleForm").dispatchEvent(new ownerAdmin.MouseEvent("submit", { bubbles: true, cancelable: true }));
@@ -227,7 +236,8 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   await tick(400);
   const feedText = homeAfterCreate.document.getElementById("feed").textContent;
   check("Nov članek se pojavi na vrhu strani", feedText.includes("Testna novica iz admina"));
-  check("Članek ima značko 'Uredniška'", feedText.includes("Uredniška"));
+  check("Kartica kaže kategorijo namesto značke 'Uredniška'",
+    feedText.includes("Vesolje") && !feedText.includes("Uredniška"));
 
   // 6. Branje članka na lastni strani
   const articleNav = { url: "" };
@@ -243,6 +253,8 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
   await tick(400);
   check("Naslov v članku se ujema", artWin.document.getElementById("articleModalTitle").textContent === "Testna novica iz admina");
   check("Odstavki so izpisani", artWin.document.querySelectorAll("#articleModalContent p").length === 2);
+  check("Na članku je vidna kategorija (ne več značka 'Uredniška')",
+    artWin.document.getElementById("articleModalBadge").textContent.trim() === "Vesolje");
 
   // 6b. Komentarji: prijava, objava, odgovor, urejanje lastnega komentarja
   await artWin.AUAuth.register({ name: "Zvezda", email: "zvezda@test.si", password: "geslo123" });
@@ -565,6 +577,122 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
     /\.portal-panel \.admin-list,\s*\.portal-panel \.cat-list \{[^}]*max-height:\s*none/.test(css));
   check("Razdelek Novice ni obrezan (overflow: visible)",
     /\.portal-panel \.admin-layout \{[^}]*overflow:\s*visible/.test(css));
+
+
+  console.log("▶ Takojšen prikaz, več kategorij in izbor urednika…");
+
+  // 16. Predpomnilnik brskalnika: pravi prikaz takoj ob osvežitvi
+  const silentFB = makeFB();
+  silentFB.cloud = {};
+  silentFB.loadArticles = () => new Promise(() => {}); // oblak "molči"
+  const cached = [{
+    id: "cached-1", title: "Predpomnjena novica", summary: "Iz predpomnilnika.",
+    content: "Vsebina.", image: "", category: "Planeti", date: "2026-09-10",
+    own: true, status: "published"
+  }];
+  const instantWin = boot("index.html", "http://localhost/index.html", {
+    FB: silentFB,
+    storage: { local: { "astronomski-utrinek-articles-v1": JSON.stringify(cached) } },
+    nav: { url: "" }
+  });
+  await tick(120);
+  check("Ob osvežitvi se novice izrišejo takoj iz predpomnilnika (brez čakanja na Firebase)",
+    instantWin.document.getElementById("feed").textContent.includes("Predpomnjena novica"));
+  check("Izbor urednika se izriše takoj iz predpomnilnika",
+    instantWin.document.getElementById("featuredTitle").textContent === "Predpomnjena novica");
+  check("Števec novic takoj pokaže pravo število",
+    /1 novica/.test(instantWin.document.getElementById("feedInfo").textContent));
+
+  const loadingWin = boot("index.html", "http://localhost/index.html", { FB: silentFB, nav: { url: "" } });
+  await tick(120);
+  check("Brez predpomnilnika stran med nalaganjem ne trdi, da novic ni",
+    loadingWin.document.getElementById("feedInfo").textContent.includes("Nalagam") &&
+    loadingWin.document.getElementById("feedStatus").classList.contains("hidden"));
+
+  // 17. Več kategorij na en članek (kljukice namesto spustnega seznama)
+  const catFB = makeFB();
+  const catAdmin = boot("admin.html", "http://localhost/admin.html", {
+    FB: catFB,
+    storage: { local: { "astronomski-utrinek-user": JSON.stringify(EDITOR_SESSION) } },
+    nav: { url: "" }
+  });
+  await tick(150);
+  check("V obrazcu so kljukice za kategorije (spustnega seznama ni več)",
+    !catAdmin.document.getElementById("fCategory") &&
+    catAdmin.document.querySelectorAll("#fCats input[name='fCat']").length >= 5);
+  check("Privzeto je obkljukana natanko ena kategorija",
+    catAdmin.document.querySelectorAll("#fCats input[name='fCat']:checked").length === 1);
+  catAdmin.document.getElementById("fTitle").value = "Raketa in vesolje hkrati";
+  catAdmin.document.getElementById("fSummary").value = "Povzetek dveh kategorij.";
+  catAdmin.document.getElementById("fContent").value = "Vsebina.";
+  setFormCats(catAdmin, ["Vesolje", "Rakete"]);
+  catAdmin.document.getElementById("articleForm")
+    .dispatchEvent(new catAdmin.MouseEvent("submit", { bubbles: true, cancelable: true }));
+  await tick(100);
+  const multi = Object.values(catFB.cloud).find((a) => a.title === "Raketa in vesolje hkrati");
+  check("Članek se shrani z dvema kategorijama (in glavno kategorijo)",
+    multi && multi.categories.join(",") === "Vesolje,Rakete" && multi.category === "Vesolje");
+
+  const catHome = boot("index.html", "http://localhost/index.html", {
+    FB: catFB, storage: dumpStorage(catAdmin), nav: { url: "" }
+  });
+  await tick(400);
+  const multiCard = [...catHome.document.querySelectorAll("#feed .news-card")]
+    .find((c) => c.textContent.includes("Raketa in vesolje hkrati"));
+  check("Kartica pokaže obe kategoriji",
+    multiCard && multiCard.querySelectorAll(".card-badges .badge").length === 2);
+  const chip = (name) => [...catHome.document.querySelectorAll("#chips .chip")]
+    .find((c) => c.dataset.filter === name);
+  chip("Rakete").click();
+  await tick(40);
+  check("Bralec najde članek tudi pod drugo njegovo kategorijo",
+    catHome.document.getElementById("feed").textContent.includes("Raketa in vesolje hkrati"));
+  chip("Planeti").click();
+  await tick(40);
+  check("Pod kategorijo, ki je članek nima, ga ni",
+    !catHome.document.getElementById("feed").textContent.includes("Raketa in vesolje hkrati"));
+
+  const raketeInput = catAdmin.document.querySelector(".cat-item[data-cat='Rakete'] .cat-item-name");
+  raketeInput.value = "Izstrelki";
+  raketeInput.dispatchEvent(new catAdmin.Event("change", { bubbles: true }));
+  await tick(100);
+  const renamed = Object.values(catFB.cloud).find((a) => a.title === "Raketa in vesolje hkrati");
+  check("Preimenovanje kategorije se prenese na članek (tudi v oblaku)",
+    renamed && renamed.categories.join(",") === "Vesolje,Izstrelki" && renamed.category === "Vesolje");
+  catAdmin.document.querySelector("[data-cat-delete='Izstrelki']").click();
+  await tick(100);
+  const afterDelete = Object.values(catFB.cloud).find((a) => a.title === "Raketa in vesolje hkrati");
+  check("Brisanje kategorije se prenese na članek",
+    afterDelete && afterDelete.categories.join(",") === "Vesolje");
+
+  // 18. ⭐ Izbor urednika
+  const starAdmin = boot("admin.html", "http://localhost/admin.html", {
+    FB: catFB, storage: dumpStorage(catAdmin), nav: { url: "" }
+  });
+  await tick(200);
+  check("Vsak članek v meniju ima zvezdico za izbor urednika",
+    starAdmin.document.querySelectorAll("#adminList [data-feature]").length === 2);
+  const starOf = (title) => [...starAdmin.document.querySelectorAll("#adminList [data-feature]")]
+    .find((b) => b.closest(".admin-list-item").textContent.includes(title));
+  starOf("Novica iz oblaka").click();
+  await tick(100);
+  const flagged = Object.values(catFB.cloud).filter((a) => a.featured);
+  check("Klik na zvezdico označi članek kot izbor urednika (tudi v oblaku)",
+    flagged.length === 1 && flagged[0].title === "Novica iz oblaka");
+  check("Označen članek je v meniju označen",
+    starAdmin.document.querySelectorAll("#adminList .admin-item-star.is-on").length === 1);
+  starOf("Raketa in vesolje hkrati").click();
+  await tick(100);
+  const flagged2 = Object.values(catFB.cloud).filter((a) => a.featured);
+  check("Prejšnja izbira se samodejno odznači (izbor urednika je samo en)",
+    flagged2.length === 1 && flagged2[0].title === "Raketa in vesolje hkrati");
+  const starHome = boot("index.html", "http://localhost/index.html", {
+    FB: catFB, storage: dumpStorage(starAdmin), nav: { url: "" }
+  });
+  await tick(400);
+  check("Naslovnica pokaže označeno novico kot izbor urednika",
+    starHome.document.getElementById("featuredTitle").textContent === "Raketa in vesolje hkrati" &&
+    starHome.document.getElementById("featuredBadge").textContent === "Izbor urednika");
 
   console.log(`\nRezultat: ${pass} opravljenih, ${fail} neuspešnih`);
   process.exit(fail ? 1 : 0);
