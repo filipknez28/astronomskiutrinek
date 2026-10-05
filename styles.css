@@ -1836,3 +1836,281 @@ body.portal-open { overflow: hidden; }
 .drawer-danger .modal-sub { font-size: 0.78rem; margin-bottom: 10px; }
 .drawer-danger .btn { display: inline-flex; align-items: center; gap: 7px; }
 .drawer-danger .ico { width: 15px; height: 15px; }
+
+/* ==========================================================================
+   REDESIGN v2 — "Observatorij": uredniški, profesionalen, mirn Ton
+   Temno pomorsko modra, ošiljena tipografija, modri poudarki, zlati detajli
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0a0d16;
+  --bg-elev: #121724;
+  --bg-deep: #070a12;
+  --ink: #eef1f6;
+  --muted: #98a0b3;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(79, 143, 247, 0.35);
+  --accent: #4f8ff7;
+  --accent-2: #d9a84e;
+  --accent-glow: rgba(79, 143, 247, 0.30);
+  --purple-glow: rgba(79, 143, 247, 0.15);
+  --danger: #f0705a;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-body: "Inter", -apple-system, sans-serif;
+  --radius: 12px;
+  --header: 64px;
+}
+
+body {
+  background: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 90% 50% at 50% -15%, rgba(30, 58, 110, 0.35) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(20, 35, 65, 0.25) 0%, transparent 70%);
+  background-attachment: fixed;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+body::after { display: none !important; }
+
+::selection { background: rgba(79, 143, 247, 0.35); color: #fff; }
+
+.container { max-width: 1200px; }
+
+/* Glava: čista, trdna, profesionalna */
+.site-header {
+  background: rgba(7, 10, 18, 0.92) !important;
+  background-color: rgba(7, 10, 18, 0.92) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.brand-logo { height: 40px; filter: none; }
+.brand-mark.is-fallback {
+  width: 34px; height: 34px;
+  background: rgba(79, 143, 247, 0.12);
+  border: 1px solid rgba(79, 143, 247, 0.3);
+}
+.brand-mark.is-fallback .brand-emoji { color: var(--accent); }
+.brand.is-fallback .brand-text {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  background: linear-gradient(135deg, #ffffff 0%, #c7d3e8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.main-nav a {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 7px 14px;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.main-nav a:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.main-nav a[aria-current="page"] { color: var(--ink); background: rgba(79, 143, 247, 0.14); }
+
+/* Hero: ureniški naglasi */
+.hero-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+}
+.hero-card-shade {
+  background: linear-gradient(to top,
+    rgba(7, 10, 18, 0.95) 0%,
+    rgba(10, 13, 22, 0.55) 50%,
+    transparent 100%) !important;
+}
+.badge {
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  background: rgba(79, 143, 247, 0.14);
+  color: #8db8fa;
+  border: 1px solid rgba(79, 143, 247, 0.3);
+}
+.badge-live, .badge-official {
+  background: linear-gradient(135deg, #e5b95e, #c99640);
+  color: #1a1204;
+  border: none;
+  box-shadow: 0 2px 12px rgba(217, 168, 78, 0.3);
+}
+#featuredTitle, .hero-card h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+}
+#featuredMeta, .hero-card figcaption p { color: #c3cad8; }
+
+/* Sekcije */
+.section-head h2, .news-section h2, .page-title, .story-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.section-sub, .section-kicker { color: var(--muted); }
+.section-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+/* Išči */
+.search-input {
+  background: rgba(18, 23, 36, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  padding: 10px 16px;
+}
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.15);
+  outline: none;
+}
+
+/* Filtri */
+.chip {
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 7px 14px;
+}
+.chip:hover { border-color: var(--line-strong); color: var(--ink); }
+.chip.is-active {
+  background: rgba(79, 143, 247, 0.16);
+  border-color: var(--accent);
+  color: #cfe0fb;
+}
+
+/* Novičarske kartice */
+.news-grid { gap: 22px; }
+.news-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.news-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(79, 143, 247, 0.4);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+}
+.card-img { background: #0d1119; }
+.card-img img { transition: transform 0.5s ease; }
+.news-card:hover .card-img img { transform: scale(1.04); }
+.card-body h4, .card-body h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.28;
+}
+.card-byline { color: var(--muted); font-size: 0.78rem; }
+.read-more {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+.news-card:hover .read-more { color: #8db8fa; }
+.feed-status { color: var(--muted); }
+
+/* Gumbi */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: 10px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 14px rgba(79, 143, 247, 0.3);
+}
+.btn-primary:hover { background: #5f9bf8; transform: translateY(-1px); box-shadow: 0 6px 22px rgba(79, 143, 247, 0.4); }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.btn-ghost:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.04); }
+.btn-danger-ghost {
+  background: transparent;
+  border: 1px solid rgba(240, 112, 90, 0.4);
+  color: var(--danger);
+}
+.btn-danger-ghost:hover { background: rgba(240, 112, 90, 0.08); }
+.btn-google { background: #fff; color: #111; }
+
+/* Vnosna polja */
+.text-input, .form-field input, .form-field textarea, .form-field select {
+  background: rgba(18, 23, 36, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+}
+.text-input:focus, .form-field input:focus, .form-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.14);
+  outline: none;
+}
+
+/* Noga */
+.site-footer {
+  background: #070a12;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+.footer-brand strong { font-family: var(--font-display); }
+.footer-nav a:hover { color: var(--accent); }
+.footer-support:hover { color: var(--accent-2); }
+
+/* Kartice v orodjih */
+.stat-card, .glass-card, .about-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.stat-ic { color: var(--accent); }
+
+/* Komentarji */
+.comment {
+  background: rgba(18, 23, 36, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.comment:hover { border-color: rgba(79, 143, 247, 0.28); }
+.role-badge {
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.role-admin { background: rgba(217, 168, 78, 0.14); color: #e5c584; border: 1px solid rgba(217, 168, 78, 0.35); }
+.role-moderator { background: rgba(79, 143, 247, 0.14); color: #8db8fa; border: 1px solid rgba(79, 143, 247, 0.35); }
+.role-banned { background: rgba(240, 112, 90, 0.12); color: #f0a090; border: 1px solid rgba(240, 112, 90, 0.4); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #070a12; }
+::-webkit-scrollbar-thumb { background: #232b3d; border-radius: 999px; border: 2px solid #070a12; }
+::-webkit-scrollbar-thumb:hover { background: #33405c; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
