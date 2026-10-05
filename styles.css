@@ -2298,3 +2298,8 @@ body::after, .starfield { display: none !important; }
 }
 .nl-pick-item input { accent-color: #101114; }
 .mini-row-static { list-style: none; }
+
+/* O strani: svetlo besedilo na črnem ozadju */
+.about-page h1, .about-page .about-lead strong, .about-page strong { color: #fff; }
+.about-page .section-kicker { color: #9aa0ab; }
+.about-page p { color: #cfd3da; }
