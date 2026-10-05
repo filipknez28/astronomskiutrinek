@@ -2315,3 +2315,33 @@ body::after, .starfield { display: none !important; }
   .section-head { margin-bottom: 14px !important; }
   .subscribe-band { padding: 36px 0 !important; }
 }
+
+/* v4 popravek: mobilni meni = bel list s temnim besedilom */
+@media (max-width: 860px) {
+  .main-nav {
+    background: #fff;
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+  }
+  .main-nav a,
+  .main-nav .auth-slot a {
+    color: #101114;
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    padding: 15px 18px;
+    border-radius: 14px;
+    border-bottom: none;
+    background: #f2f3f5;
+    margin-bottom: 10px;
+  }
+  .main-nav a:hover,
+  .main-nav .auth-slot a:hover { color: #000; background: #e9ebee; }
+  .main-nav a[aria-current="page"] {
+    color: #101114;
+    background: #f5c518;
+    font-weight: 700;
+  }
+  .main-nav .auth-slot { display: block; margin-top: 14px; }
+  .main-nav .auth-slot a { background: #f5c518; color: #101114; text-align: center; }
+}
