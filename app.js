@@ -1,4 +1,5 @@
 /* ===== Astronomski Utrinek — app.js ===== */
+document.documentElement.classList.add("js");
 
 /* ---------- Konstante ---------- */
 const LS_KEY = "astronomski-utrinek-articles-v1";

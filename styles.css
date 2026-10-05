@@ -66,11 +66,8 @@ img { max-width: 100%; display: block; }
 
 .starfield { display: none !important; }
 
-.reveal {
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
-}
+.reveal { transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(12px); }
 .reveal.is-visible { opacity: 1; transform: none; }
 
 /* ===== Glava ===== */
@@ -2300,7 +2297,7 @@ body::after, .starfield { display: none !important; }
 .mini-row-static { list-style: none; }
 
 /* O strani: svetlo besedilo na črnem ozadju */
-.about-page h1, .about-page .about-lead strong, .about-page strong { color: #fff; }
+.about-page h1, .about-page .about-lead strong { color: #fff; }
 .about-page .section-kicker { color: #9aa0ab; }
 .about-page p { color: #cfd3da; }
 
@@ -2345,3 +2342,45 @@ body::after, .starfield { display: none !important; }
   .main-nav .auth-slot { display: block; margin-top: 14px; }
   .main-nav .auth-slot a { background: #f5c518; color: #101114; text-align: center; }
 }
+
+/* ==========================================================================
+   v5 končni sloj: pregled celotne strani — čitljivost, praznine, logika
+   ========================================================================== */
+
+/* 1. Blede naslove zamenjaj s trdnim črnilom (gradient je bil za temno ozadje) */
+.section-head h2, .news-section h2, .page-title {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: #101114;
+  color: #101114;
+}
+
+/* 2. Prijava: naslov na temni kartici mora biti svetel */
+.login-card h1 { color: #fff; }
+.login-card .login-sub { color: #a9aeb8; }
+
+/* 3. O strani: povezave na črnem heroju svetlo-rumene, imena v svetli kartici temna */
+.about-page p a { color: #f5c518; text-decoration-color: rgba(245, 197, 24, 0.5); }
+.about-list strong { color: #101114; }
+
+/* 4. Kategorije-pas na telefonu: urejen prelom, gumb ne lebdi nad vrstico */
+@media (max-width: 720px) {
+  .cat-bar-inner { flex-wrap: wrap; row-gap: 4px; padding: 6px 0; }
+  .cat-bar-cta { margin-left: auto; }
+}
+
+/* 5. Skrbniško prijavno okno: dejanja na sredino */
+.modal-actions { justify-content: center; }
+
+/* 6. Domača: praznine med junaki in seznamom naj dihajo, ne silijo se */
+@media (max-width: 860px) {
+  .news-home { padding-bottom: 56px; }
+  .news-home .hero { margin-bottom: 28px; }
+  .cat-section { margin: 38px 0 4px; }
+}
+
+/* 7. Popravka zadnjega pregleda */
+.auth-card h1 { color: #fff; -webkit-text-fill-color: #fff; }
+.login-card h1 { -webkit-text-fill-color: #fff; }
+.about-page p strong { color: #fff; }
