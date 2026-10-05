@@ -40,6 +40,12 @@
 <body data-page="home">
   <div id="starfield" class="starfield" aria-hidden="true"></div>
 
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <span class="topbar-date" id="topbarDate"></span>
+      <span class="topbar-note">Neodvisne novice iz vesolja</span>
+    </div>
+  </div>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="index.html">
@@ -60,6 +66,12 @@
     </div>
   </header>
 
+  <nav class="cat-bar" aria-label="Kategorije">
+    <div class="container cat-bar-inner">
+      <div class="cat-bar-links" id="catBarLinks"></div>
+      <a class="cat-bar-cta" href="#novice-nl">Naroči se</a>
+    </div>
+  </nav>
   <main id="novice" class="news-section news-home">
     <div class="container">
       <section class="text-hero reveal" id="vrh">
@@ -102,11 +114,15 @@
 
   <section class="subscribe-band reveal" aria-label="Ne zamudi novih objav">
     <div class="container subscribe-inner">
-      <div>
-        <h2>Ne zamudi <strong>novih objav</strong></h2>
-        <p>Ustvari račun in spremljaj novice ter komentarje.</p>
+      <div class="subscribe-copy">
+        <h2>Newsletter <strong>Utrinek</strong></h2>
+        <p>Najboljše z neba, enkrat tedensko v tvoj nabiralnik. Brez neželenih sporočil.</p>
       </div>
-      <a class="btn btn-primary btn-lg" href="prijava.html">Ustvari račun</a>
+      <form class="nl-form" id="nlForm" novalidate>
+        <input type="email" id="nlEmail" class="nl-input" placeholder="Tvoj e-naslov" aria-label="E-naslov za newsletter" required />
+        <button class="btn btn-primary" type="submit">Naroči se</button>
+      </form>
+      <p class="nl-msg hidden" id="nlMsg" aria-live="polite"></p>
     </div>
   </section>
   <footer class="site-footer">

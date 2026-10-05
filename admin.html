@@ -79,6 +79,7 @@
             <button class="portal-nav-btn" data-tab="articles" type="button"><span class="pn-ico" data-ico="list"></span><span class="pn-label">Novice</span><em class="pn-count" id="navCountArticles">0</em></button>
             <button class="portal-nav-btn" data-tab="comments" type="button"><span class="pn-ico" data-ico="quote"></span><span class="pn-label">Komentarji</span><em class="pn-count" id="navCountComments">0</em></button>
             <button class="portal-nav-btn" data-tab="users" type="button"><span class="pn-ico" data-ico="grid"></span><span class="pn-label">Uporabniki</span><em class="pn-count" id="navCountUsers">0</em></button>
+            <button class="portal-nav-btn" data-tab="newsletter" type="button"><span class="pn-ico" data-ico="comet"></span><span class="pn-label">Newsletter</span><em class="pn-count" id="navCountNewsletter">0</em></button>
             <button class="portal-nav-btn" data-tab="profile" type="button"><span class="pn-ico" data-ico="star"></span><span class="pn-label">Moj profil</span></button>
           </nav>
 
@@ -261,6 +262,35 @@
             </section>
 
             <!-- Moj profil -->
+            <section class="portal-panel" data-panel="newsletter">
+              <div class="glass-card">
+                <div class="card-head">
+                  <h2><span class="pn-ico" data-ico="comet"></span> Naročniki</h2>
+                  <em class="pn-count" id="nlCountInline">0</em>
+                </div>
+                <p class="admin-hint">Naročniki se prijavijo skozi obrazec na domači strani. Vsak novi vpis se shrani v bazo in takoj pokaže tukaj.</p>
+                <ul id="nlSubList" class="mini-list"></ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="card-head">
+                  <h2><span class="pn-ico" data-ico="heading"></span> Nova številka</h2>
+                </div>
+                <p class="admin-hint">Izberi novice, ki gredo v sporočilo, ga sestavi in odpri svoj poštni predal: vsi naročniki so že v skriti kopiji (BCC), ti samo klikneš Pošlji.</p>
+                <div id="nlPick" class="nl-pick"></div>
+                <label class="admin-label" for="nlSubject">Zadeva</label>
+                <input id="nlSubject" class="admin-input" type="text" placeholder="Astronomski Utrinek — tedenski izbor" />
+                <label class="admin-label" for="nlBody">Sporočilo</label>
+                <textarea id="nlBody" class="admin-input" rows="10" placeholder="Besedilo sporočila …"></textarea>
+                <div class="admin-actions">
+                  <button class="btn btn-primary" id="nlBuild" type="button">Sestavi iz novic</button>
+                  <button class="btn btn-ghost" id="nlCopy" type="button">Kopiraj besedilo</button>
+                  <button class="btn btn-primary" id="nlOpenMail" type="button">Odpri poštni predal</button>
+                </div>
+                <p class="admin-hint" id="nlComposeMsg" aria-live="polite"></p>
+              </div>
+            </section>
+
             <section class="portal-panel" data-panel="profile">
               <div class="profile-hero glass-card">
                 <div class="profile-hero-main">

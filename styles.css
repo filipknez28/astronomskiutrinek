@@ -2164,3 +2164,137 @@ body::after, .starfield { display: none !important; }
 .cat-head { width: 100%; }
 .cat-head h2 { width: auto; }
 .section-head h2, .news-section h2 { width: auto; }
+
+/* ==========================================================================
+   REDESIGN v4 — "Uredniški masthead": datum vrstica, črni kategoriji pas,
+   serif naslovi, pravi newsletter (temen pas z obrazcem)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Naslovi so serif: uredniški značaj */
+.text-hero h1,
+.section-head h2, .news-section h2, .page-title, .story-hero h1,
+.cat-head h2, .news-card h3, .news-card h4,
+#featuredTitle, .hero-card h1, .subscribe-inner h2 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.news-card h3 { font-size: 1.14rem; }
+.text-hero h1 { font-size: clamp(1.9rem, 4vw, 3rem); }
+
+/* Zgornja vrstica z datumom */
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  color: #5b6068;
+}
+.topbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+.topbar-note { letter-spacing: 0.04em; }
+
+/* Črni kategoriji pas */
+.cat-bar { background: #101114; }
+.cat-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 46px;
+}
+.cat-bar-links { display: flex; gap: 4px; flex-wrap: wrap; }
+.cat-bar-links a {
+  color: #cfd3da;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.cat-bar-links a:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.cat-bar-cta {
+  color: #111;
+  background: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cat-bar-cta:hover { background: #ffc90d; }
+
+/* Newsletter: temen pas, rumeni gumb */
+.subscribe-band {
+  background: #101114;
+  border-top: none;
+  color: #fff;
+  padding: 52px 0;
+  margin-top: 72px;
+}
+.subscribe-inner { display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
+.subscribe-copy h2 { color: #fff; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.3rem); }
+.subscribe-copy h2 strong { color: var(--accent); font-weight: 700; }
+.subscribe-copy p { margin: 0; color: #a6abb6; max-width: 420px; }
+.nl-form { display: flex; gap: 10px; flex-wrap: wrap; }
+.nl-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 12px 20px;
+  min-width: 260px;
+}
+.nl-input::placeholder { color: #8a8f98; }
+.nl-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.25);
+  outline: none;
+}
+.nl-msg { width: 100%; margin: 12px 0 0; color: #a6abb6; font-size: 0.88rem; }
+.nl-msg.is-ok { color: #7dd487; }
+.nl-msg.is-err { color: #f0937f; }
+
+/* Newsletter v uredniškem portalu */
+.admin-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5b6068;
+  margin: 14px 0 6px;
+}
+.admin-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink, #101114);
+  font-family: var(--font-body, inherit);
+  font-size: 0.95rem;
+  padding: 10px 14px;
+}
+.admin-input:focus { border-color: var(--accent); outline: none; }
+.admin-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.admin-hint { font-size: 0.85rem; color: #6b7280; margin: 8px 0 14px; }
+.nl-pick { display: flex; flex-direction: column; gap: 6px; }
+.nl-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.nl-pick-item input { accent-color: #101114; }
+.mini-row-static { list-style: none; }

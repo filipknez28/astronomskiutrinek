@@ -186,6 +186,32 @@ window.FB = (function () {
     await req("site/categories", { method: "PUT", body: JSON.stringify(payload) });
   }
 
+  /* ===== Newsletter (naročniki) ===== */
+  function subKey(email) {
+    return encodeURIComponent(String(email || "").toLowerCase().replace(/\./g, ","));
+  }
+  async function loadSubscribers() {
+    const data = await req("newsletter");
+    if (!data || typeof data !== "object") return [];
+    return Object.entries(data)
+      .filter(([, s]) => s && typeof s === "object")
+      .map(([id, s]) => ({ ...s, id: s.id || id }))
+      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  }
+  async function saveSubscriber(email) {
+    const e = String(email || "").trim().toLowerCase();
+    if (!e || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) throw new Error("E-naslov ni veljaven");
+    const k = subKey(e);
+    await req("newsletter/" + k, {
+      method: "PUT",
+      body: JSON.stringify({ id: k, email: e, date: new Date().toISOString() })
+    });
+    return e;
+  }
+  async function deleteSubscriber(email) {
+    await req("newsletter/" + subKey(email), { method: "DELETE" });
+  }
+
   return {
     isConfigured,
     loadArticles,
@@ -207,6 +233,9 @@ window.FB = (function () {
     saveSiteProfile,
     loadSiteCategories,
     saveSiteCategories,
+    loadSubscribers,
+    saveSubscriber,
+    deleteSubscriber,
     databaseURL: db
   };
 })();

@@ -845,7 +845,7 @@ function renderFeed() {
     const rest = list.filter((a) => !categories.some((c) => catsOf(a).includes(c)));
     if (rest.length) groups.push({ name: "Novice", items: rest });
     feed.innerHTML = groups.map((g) => `
-      <section class="cat-section reveal">
+      <section class="cat-section reveal" id="cat-${catSlug(g.name)}">
         <div class="cat-head">
           <h2>${escapeHtml(g.name)}</h2>
           <span class="cat-count">${g.items.length}</span>
@@ -2362,6 +2362,7 @@ const PORTAL_TABS = {
   articles: ["Novice", "Vsebina"],
   comments: ["Komentarji", "Skupnost"],
   users: ["Uporabniki", "Skupnost"],
+  newsletter: ["Newsletter", "Doseg"],
   profile: ["Moj profil", "Službeni račun"]
 };
 
@@ -2426,7 +2427,8 @@ function renderPortalDashboard() {
     statCardHtml("grid", portalUsers.length, "Uporabnikov", `${portalUsers.filter((u) => new Date(u.lastSeen || 0).getTime() > dayAgo).length} dejavnih danes`) +
     statCardHtml("quote", portalComments.length, "Komentarjev", `${recent} v zadnjem dnevu`) +
     statCardHtml("image", imgs + links, "Slik in povezav", `${imgs} slik · ${links} povezav`) +
-    statCardHtml("list", ownArticles.length, "Novic v arhivu", `${waiting} komentarjev čaka odgovor`);
+    statCardHtml("list", ownArticles.length, "Novic v arhivu", `${waiting} komentarjev čaka odgovor`) +
+    statCardHtml("comet", nlSubscribers.length, "Naročnikov", "prijavljenih na newsletter");
 
   $("dashComments").innerHTML = portalComments.length
     ? portalComments.slice(0, 5).map((c) => `
@@ -2879,6 +2881,7 @@ async function init() {
     await syncProfileFromCloud();
     await syncCategoriesFromCloud();
     await syncRolesFromCloud();
+    initNewsletterAdmin();
     if (isOwner()) {
       openAdmin();
     } else {
@@ -2902,6 +2905,8 @@ async function init() {
   initFilters();
   renderFeed();
   initReveal();
+  paintTopbarDate();
+  initNewsletterPublic();
 
   // Takojšen prikaz iz predpomnilnika brskalnika (novice + izbor urednika),
   // šele nato tiha posodobitev iz oblaka.
@@ -2909,9 +2914,172 @@ async function init() {
   renderFeatured();
   await syncFromCloud();
   await syncCategoriesFromCloud();
+  renderCatBar();
   pickFeatured();
   renderFeatured();
   renderFeed();
+}
+
+
+/* ---------- Newsletter ---------- */
+let nlSubscribers = [];
+
+function catSlug(name) {
+  const map = { "č": "c", "š": "s", "ž": "z", "Č": "c", "Š": "s", "Ž": "z" };
+  return String(name || "").trim().toLowerCase()
+    .replace(/[čšžČŠŽ]/g, (m) => map[m])
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function paintTopbarDate() {
+  const el = $("topbarDate");
+  if (!el) return;
+  const dni = ["nedelja", "ponedeljek", "torek", "sreda", "četrtek", "petek", "sobota"];
+  const mes = ["januar", "februar", "marec", "april", "maj", "junij", "julij", "avgust", "september", "oktober", "november", "december"];
+  const d = new Date();
+  el.textContent = `${dni[d.getDay()]}, ${d.getDate()}. ${mes[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function renderCatBar() {
+  const box = $("catBarLinks");
+  if (!box || !categories.length) return;
+  box.innerHTML = categories.map((c) => {
+    const name = typeof c === "string" ? c : c.name;
+    return `<a href="#cat-${catSlug(name)}">${escapeHtml(name)}</a>`;
+  }).join("");
+}
+
+function initNewsletterPublic() {
+  const form = $("nlForm");
+  if (!form) return;
+  const msg = $("nlMsg");
+  const email = $("nlEmail");
+  const show = (text, ok) => {
+    if (!msg) return;
+    msg.textContent = text;
+    msg.classList.remove("hidden", "is-ok", "is-err");
+    msg.classList.add(ok ? "is-ok" : "is-err");
+  };
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!email) return;
+    const value = email.value.trim();
+    if (!value) { show("Vpiši e-naslov.", false); return; }
+    try {
+      let existing = [];
+      try { existing = await FB.loadSubscribers(); } catch (err) { /* brez povezave */ }
+      if (existing.some((s) => String(s.email).toLowerCase() === value.toLowerCase())) {
+        show("Ta e-naslov je že vpisan. Hvala za zaupanje!");
+        return;
+      }
+      await FB.saveSubscriber(value);
+      try { localStorage.setItem("au-nl", value.toLowerCase()); } catch (err) {}
+      email.value = "";
+      show("Super, prijavljen(a)! Prvo sporočilo pride s prihodnjimi objavami.", true);
+    } catch (err) {
+      show("Prijava ni uspela. Poskusi znova.", false);
+    }
+  });
+  try {
+    const prev = localStorage.getItem("au-nl");
+    if (prev && msg && msg.classList.contains("hidden")) {
+      msg.textContent = "Vpisan(a) si na newsletter.";
+      msg.classList.remove("hidden");
+      msg.classList.add("is-ok");
+    }
+  } catch (err) {}
+}
+
+/* ---------- Newsletter: uredniški portal ---------- */
+async function initNewsletterAdmin() {
+  const list = $("nlSubList");
+  if (!list) return;
+  const paint = () => {
+    if ($("navCountNewsletter")) $("navCountNewsletter").textContent = String(nlSubscribers.length);
+    if ($("nlCountInline")) $("nlCountInline").textContent = `${nlSubscribers.length} ${nlSubscribers.length === 1 ? "naročnik" : "naročnikov"}`;
+    list.innerHTML = nlSubscribers.length
+      ? nlSubscribers.map((s) => `
+        <li class="mini-row mini-row-static">
+          <div class="mini-body">
+            <strong>${escapeHtml(s.email)}</strong>
+            <div class="meta"><span class="meta-i">${ICO("orbit")}${escapeHtml(relTime(s.date) || (s.date || "").slice(0, 10))}</span></div>
+          </div>
+          <button class="admin-item-delete" type="button" data-nl-remove="${escapeHtml(s.email)}" title="Odstrani">${ICO("trash")}</button>
+        </li>`).join("")
+      : `<p class="admin-empty">Še ni naročnikov. Ko se kdo prijavi na spletni strani, se prikaže tukaj.</p>`;
+    list.querySelectorAll("[data-nl-remove]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const mail = btn.dataset.nlRemove;
+        if (!confirm(`Odstranim ${mail} iz newsletterja?`)) return;
+        try {
+          await FB.deleteSubscriber(mail);
+          nlSubscribers = nlSubscribers.filter((s) => s.email !== mail);
+          paint();
+          renderPortalDashboard();
+        } catch (err) {}
+      });
+    });
+  };
+  try {
+    nlSubscribers = await FB.loadSubscribers();
+  } catch (err) {
+    nlSubscribers = [];
+  }
+  paint();
+  renderPortalDashboard();
+
+  const pick = $("nlPick");
+  const fillPick = () => {
+    if (!pick) return;
+    const own = [...ownArticles].sort((x, y) => String(y.date || "").localeCompare(String(x.date || ""))).slice(0, 10);
+    pick.innerHTML = own.length
+      ? own.map((ar) => `
+        <label class="nl-pick-item">
+          <input type="checkbox" value="${escapeHtml(ar.id)}" checked />
+          <span>${escapeHtml(ar.title)}</span>
+        </label>`).join("")
+      : `<p class="admin-empty">Ni novic za izbor.</p>`;
+  };
+  fillPick();
+
+  const body = $("nlBody");
+  const subject = $("nlSubject");
+  if ($("nlBuild")) $("nlBuild").addEventListener("click", () => {
+    if (!pick || !body || !subject) return;
+    const chosen = [...pick.querySelectorAll("input:checked")].map((i) => ownArticles.find((x) => x.id === i.value)).filter(Boolean);
+    if (!chosen.length) { nlSay("Izberi vsaj eno novico."); return; }
+    subject.value = `Astronomski Utrinek — ${chosen.length === 1 ? chosen[0].title : chosen.length + " novih objav"}`;
+    body.value = "Pozdravljeni!\n\n" + chosen.map((ar) =>
+      `${ar.title}\n${String(ar.summary || "").slice(0, 140)}${String(ar.summary || "").length > 140 ? "…" : ""}\n${articleUrl(ar.id)}`
+    ).join("\n\n") + "\n\nLep pozdrav,\nuredništvo Astronomskega Utrinka\n" + (window.SITE_URL || "");
+    nlSay("Sporočilo sestavljeno. Preveri ga in klikni 'Odpri poštni predal'.");
+  });
+
+  if ($("nlCopy")) $("nlCopy").addEventListener("click", async () => {
+    if (!body || !subject) return;
+    try {
+      await navigator.clipboard.writeText(subject.value + "\n\n" + body.value);
+      nlSay("Besedilo kopirano v odložišče.");
+    } catch (err) {
+      nlSay("Kopiranje ni uspelo; označi besedilo ročno.");
+    }
+  });
+
+  if ($("nlOpenMail")) $("nlOpenMail").addEventListener("click", () => {
+    if (!body || !subject) return;
+    if (!nlSubscribers.length) { nlSay("Ni naročnikov, ki bi prejeli sporočilo."); return; }
+    const bcc = nlSubscribers.map((s) => s.email).join(",");
+    const url = "mailto:?bcc=" + encodeURIComponent(bcc) +
+      "&subject=" + encodeURIComponent(subject.value || "Astronomski Utrinek") +
+      "&body=" + encodeURIComponent(body.value || "");
+    window.location.href = url;
+  });
+
+  function nlSay(text) {
+    const m = $("nlComposeMsg");
+    if (m) m.textContent = text;
+  }
 }
 
 init();
