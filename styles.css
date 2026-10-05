@@ -2384,3 +2384,7 @@ body::after, .starfield { display: none !important; }
 .auth-card h1 { color: #fff; -webkit-text-fill-color: #fff; }
 .login-card h1 { -webkit-text-fill-color: #fff; }
 .about-page p strong { color: #fff; }
+
+/* 8. O strani: črno polje pod kartico naj ne streže po neskončnosti */
+.about-page { min-height: 0; padding-bottom: 64px; }
+@media (max-width: 860px) { .about-page { padding-bottom: 48px; } }
