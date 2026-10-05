@@ -2303,3 +2303,15 @@ body::after, .starfield { display: none !important; }
 .about-page h1, .about-page .about-lead strong, .about-page strong { color: #fff; }
 .about-page .section-kicker { color: #9aa0ab; }
 .about-page p { color: #cfd3da; }
+
+/* v4: kompaktni razmiki — praznina pod črnim pasom in pred newsletterjem */
+.subscribe-band { margin-top: 0 !important; }
+@media (max-width: 720px) {
+  .news-section { padding: 20px 0 48px !important; }
+  .news-home { padding-top: 4px !important; }
+  .text-hero { padding: 18px 0 0 !important; }
+  .text-hero h1 { margin: 0 0 18px !important; }
+  .topbar-note { display: none; }
+  .section-head { margin-bottom: 14px !important; }
+  .subscribe-band { padding: 36px 0 !important; }
+}
