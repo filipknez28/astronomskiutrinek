@@ -803,8 +803,7 @@ function renderFeed() {
   }
   if ($("feedStatus")) $("feedStatus").classList.add("hidden");
 
-  feed.innerHTML = list
-    .map((a) => {
+  const cardHtml = (a) => {
       // Značke so kategorije — vse novice so uredniške, zato značke „Uredniška“ ni več.
       const badges = catsOf(a).length
         ? `<div class="card-badges">` +
@@ -832,8 +831,30 @@ function renderFeed() {
           <span class="read-more">Preberi zgodbo</span>
         </div>
       </a>`;
-    })
-    .join("");
+  };
+
+  // Doma se novice skupine po kategorijah; pri iskanju ali aktivnem filtru ostane enoten seznam.
+  const hasQuery = (($("searchInput") || {}).value || "").trim() !== "";
+  const grouped = currentFilter === "Vse" && !hasQuery && categories.length > 0;
+  if (grouped) {
+    const groups = [];
+    categories.forEach((c) => {
+      const items = list.filter((a) => catsOf(a).includes(c));
+      if (items.length) groups.push({ name: c, items });
+    });
+    const rest = list.filter((a) => !categories.some((c) => catsOf(a).includes(c)));
+    if (rest.length) groups.push({ name: "Novice", items: rest });
+    feed.innerHTML = groups.map((g) => `
+      <section class="cat-section reveal">
+        <div class="cat-head">
+          <h2>${escapeHtml(g.name)}</h2>
+          <span class="cat-count">${g.items.length}</span>
+        </div>
+        <div class="news-grid">${g.items.map(cardHtml).join("")}</div>
+      </section>`).join("");
+  } else {
+    feed.innerHTML = list.map(cardHtml).join("");
+  }
 
   // Vse objavljene novice so uredniške — prikaži le preprost števec in avtorja.
   const nPlural = (n) => (n === 1 ? "novica" : n === 2 ? "novici" : n === 3 || n === 4 ? "novice" : "novic");

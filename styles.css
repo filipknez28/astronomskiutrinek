@@ -1838,279 +1838,329 @@ body.portal-open { overflow: hidden; }
 .drawer-danger .ico { width: 15px; height: 15px; }
 
 /* ==========================================================================
-   REDESIGN v2 — "Observatorij": uredniški, profesionalen, mirn Ton
-   Temno pomorsko modra, ošiljena tipografija, modri poudarki, zlati detajli
+   REDESIGN v3 — "Svetli urednik" (v slogu nikskrlec.com), razporejeno po kategorijah
+   Svetlo ozadje, krepki naslovi, rumeni poudarki, kartice brez okvirjev
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg: #0a0d16;
-  --bg-elev: #121724;
-  --bg-deep: #070a12;
-  --ink: #eef1f6;
-  --muted: #98a0b3;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(79, 143, 247, 0.35);
-  --accent: #4f8ff7;
-  --accent-2: #d9a84e;
-  --accent-glow: rgba(79, 143, 247, 0.30);
-  --purple-glow: rgba(79, 143, 247, 0.15);
-  --danger: #f0705a;
-  --font-display: "Source Serif 4", Georgia, serif;
+  --bg: #ffffff;
+  --bg-elev: #fafafa;
+  --bg-deep: #ffffff;
+  --ink: #111214;
+  --muted: #5b6068;
+  --line: #e8e9ec;
+  --line-strong: #d9dce1;
+  --accent: #f5c518;
+  --accent-2: #f5c518;
+  --accent-glow: rgba(245, 197, 24, 0.35);
+  --purple-glow: transparent;
+  --danger: #d64545;
+  --font-display: "Inter", -apple-system, sans-serif;
   --font-body: "Inter", -apple-system, sans-serif;
-  --radius: 12px;
-  --header: 64px;
+  --radius: 16px;
 }
+
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg-deep);
-  background-image:
-    radial-gradient(ellipse 90% 50% at 50% -15%, rgba(30, 58, 110, 0.35) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(20, 35, 65, 0.25) 0%, transparent 70%);
-  background-attachment: fixed;
+  background: #ffffff !important;
+  background-image: none !important;
   color: var(--ink);
-  line-height: 1.6;
 }
+body::after, .starfield { display: none !important; }
 
-body::after { display: none !important; }
-
-::selection { background: rgba(79, 143, 247, 0.35); color: #fff; }
+::selection { background: rgba(245, 197, 24, 0.45); color: #111; }
 
 .container { max-width: 1200px; }
 
-/* Glava: čista, trdna, profesionalna */
+/* Glava: svetla, minimalna */
 .site-header {
-  background: rgba(7, 10, 18, 0.92) !important;
-  background-color: rgba(7, 10, 18, 0.92) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.96) !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
-.brand-logo { height: 40px; filter: none; }
-.brand-mark.is-fallback {
-  width: 34px; height: 34px;
-  background: rgba(79, 143, 247, 0.12);
-  border: 1px solid rgba(79, 143, 247, 0.3);
-}
-.brand-mark.is-fallback .brand-emoji { color: var(--accent); }
-.brand.is-fallback .brand-text {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  background: linear-gradient(135deg, #ffffff 0%, #c7d3e8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+.brand-logo { height: 36px; filter: none; }
+.brand.is-fallback .brand-text { background: none; -webkit-text-fill-color: var(--ink); color: var(--ink); }
+.brand-mark.is-fallback { background: var(--accent); border: none; }
+.brand-mark.is-fallback .brand-emoji { color: #111; }
+.brand-text { color: var(--ink); }
 .main-nav a {
-  font-family: var(--font-body);
-  font-size: 0.88rem;
+  color: #33363c;
+  font-size: 0.92rem;
   font-weight: 500;
-  color: var(--muted);
   padding: 7px 14px;
-  border-radius: 8px;
-  transition: color 0.2s ease, background 0.2s ease;
+  border-radius: 999px;
 }
-.main-nav a:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
-.main-nav a[aria-current="page"] { color: var(--ink); background: rgba(79, 143, 247, 0.14); }
+.main-nav a:hover { color: #000; background: #f2f3f5; }
+.main-nav a[aria-current="page"] { color: #000; background: #f2f3f5; font-weight: 600; }
 
-/* Hero: ureniški naglasi */
-.hero-card {
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
-}
-.hero-card-shade {
-  background: linear-gradient(to top,
-    rgba(7, 10, 18, 0.95) 0%,
-    rgba(10, 13, 22, 0.55) 50%,
-    transparent 100%) !important;
-}
-.badge {
-  font-family: var(--font-body);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-radius: 6px;
-  background: rgba(79, 143, 247, 0.14);
-  color: #8db8fa;
-  border: 1px solid rgba(79, 143, 247, 0.3);
-}
-.badge-live, .badge-official {
-  background: linear-gradient(135deg, #e5b95e, #c99640);
-  color: #1a1204;
-  border: none;
-  box-shadow: 0 2px 12px rgba(217, 168, 78, 0.3);
-}
-#featuredTitle, .hero-card h1 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.12;
-}
-#featuredMeta, .hero-card figcaption p { color: #c3cad8; }
-
-/* Sekcije */
-.section-head h2, .news-section h2, .page-title, .story-hero h1 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.section-sub, .section-kicker { color: var(--muted); }
-.section-kicker {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent-2);
-}
-
-/* Išči */
-.search-input {
-  background: rgba(18, 23, 36, 0.8);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+/* Besedilni hero (v slogu nikskrlec) */
+.text-hero { padding: 56px 0 10px; }
+.text-hero h1 {
+  font-size: clamp(1.9rem, 4.2vw, 3.2rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.14;
   color: var(--ink);
-  padding: 10px 16px;
+  margin: 0 0 22px;
 }
-.search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.15);
-  outline: none;
-}
+.text-hero h1 strong { font-weight: 800; color: #000; }
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
 
-/* Filtri */
-.chip {
-  border-radius: 8px;
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--muted);
-  font-family: var(--font-body);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 7px 14px;
-}
-.chip:hover { border-color: var(--line-strong); color: var(--ink); }
-.chip.is-active {
-  background: rgba(79, 143, 247, 0.16);
-  border-color: var(--accent);
-  color: #cfe0fb;
-}
-
-/* Novičarske kartice */
-.news-grid { gap: 22px; }
-.news-card {
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.news-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(79, 143, 247, 0.4);
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
-}
-.card-img { background: #0d1119; }
-.card-img img { transition: transform 0.5s ease; }
-.news-card:hover .card-img img { transform: scale(1.04); }
-.card-body h4, .card-body h3 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.28;
-}
-.card-byline { color: var(--muted); font-size: 0.78rem; }
-.read-more {
-  font-family: var(--font-body);
-  font-weight: 600;
-  color: var(--accent);
-  font-size: 0.8rem;
-}
-.news-card:hover .read-more { color: #8db8fa; }
-.feed-status { color: var(--muted); }
-
-/* Gumbi */
+/* Gumbi: rumeni pill, črno besedilo */
 .btn {
-  font-family: var(--font-body);
-  font-weight: 600;
-  border-radius: 10px;
+  font-weight: 700;
+  border-radius: 999px;
   transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 .btn-primary {
   background: var(--accent);
+  color: #111;
+  border: none;
+  box-shadow: none;
+}
+.btn-primary:hover { background: #ffc90d; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(245, 197, 24, 0.35); }
+.btn-ghost { background: #fff; border: 1px solid var(--line-strong); color: #111; }
+.btn-ghost:hover { border-color: #111; background: #fff; }
+.btn-lg { padding: 12px 26px; font-size: 1rem; }
+.btn-danger-ghost { background: transparent; border: 1px solid rgba(214, 69, 69, 0.4); color: var(--danger); }
+.btn-danger-ghost:hover { background: rgba(214, 69, 69, 0.06); }
+.btn-google { background: #fff; color: #111; border: 1px solid var(--line-strong); }
+
+/* Izbrana novica (hero kartica ostane slikovna) */
+.hero-card {
+  border-radius: 20px;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 24px 70px rgba(17, 18, 20, 0.18);
+}
+.hero-card-shade {
+  background: linear-gradient(to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.45) 45%,
+    transparent 100%) !important;
+}
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  border-radius: 999px;
+  background: rgba(17, 18, 20, 0.55);
   color: #fff;
   border: none;
-  box-shadow: 0 2px 14px rgba(79, 143, 247, 0.3);
+  backdrop-filter: blur(6px);
 }
-.btn-primary:hover { background: #5f9bf8; transform: translateY(-1px); box-shadow: 0 6px 22px rgba(79, 143, 247, 0.4); }
-.btn-ghost {
-  background: transparent;
-  border: 1px solid var(--line);
+.badge-live, .badge-official {
+  background: var(--accent);
+  color: #111;
+  border: none;
+  box-shadow: 0 4px 16px rgba(245, 197, 24, 0.4);
+}
+#featuredTitle, .hero-card h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+#featuredMeta, .hero-card figcaption p { color: rgba(255, 255, 255, 0.85); }
+
+/* Glave sekcij in kategorij */
+.section-head h2, .news-section h2, .page-title, .story-hero h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #000;
+}
+.section-sub, .section-kicker { color: var(--muted); }
+.section-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a8f98;
+}
+
+/* Kategorije sekcije */
+.cat-section { margin: 46px 0 8px; }
+.cat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #111;
+}
+.cat-head h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #000;
+}
+.cat-count {
+  background: var(--accent);
+  color: #111;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 3px 11px;
+}
+
+/* Išči in filtri */
+.search-input {
+  background: #f2f3f5;
+  border: 1px solid transparent;
+  border-radius: 999px;
   color: var(--ink);
+  padding: 11px 18px;
 }
-.btn-ghost:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.04); }
-.btn-danger-ghost {
+.search-input::placeholder { color: #8a8f98; }
+.search-input:focus {
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.35);
+  outline: none;
+}
+.chip {
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  color: #33363c;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 7px 15px;
+}
+.chip:hover { border-color: #111; color: #000; }
+.chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #111;
+  font-weight: 700;
+}
+
+/* Novičarske kartice: brez okvirjev, slika zgoraj */
+.news-grid { gap: 30px; }
+.news-card {
   background: transparent;
-  border: 1px solid rgba(240, 112, 90, 0.4);
-  color: var(--danger);
+  border: none;
+  border-radius: var(--radius);
+  overflow: visible;
+  transition: transform 0.25s ease;
 }
-.btn-danger-ghost:hover { background: rgba(240, 112, 90, 0.08); }
-.btn-google { background: #fff; color: #111; }
+.news-card:hover { transform: translateY(-3px); box-shadow: none; }
+.card-img {
+  background: #f2f3f5;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(17, 18, 20, 0.06);
+}
+.card-img img { transition: transform 0.5s ease; }
+.news-card:hover .card-img img { transform: scale(1.045); }
+.card-body { padding: 16px 2px 0; }
+.card-body h3, .card-body h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.28;
+  color: #111;
+}
+.card-body > p { color: var(--muted); }
+.card-body time { color: #8a8f98; }
+.card-byline { color: #8a8f98 !important; font-size: 0.78rem; font-weight: 500; }
+.read-more {
+  font-weight: 700;
+  color: #111;
+  font-size: 0.8rem;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 1px;
+}
+.news-card:hover .read-more { color: #000; }
+.feed-status { color: var(--muted); }
+
+/* Naročniški pas */
+.subscribe-band {
+  margin: 64px 0 0;
+  padding: 40px 0;
+  border-top: 1px solid var(--line);
+}
+.subscribe-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.subscribe-inner h2 {
+  margin: 0 0 6px;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #111;
+}
+.subscribe-inner h2 strong { font-weight: 800; color: #000; }
+.subscribe-inner p { margin: 0; color: var(--muted); }
 
 /* Vnosna polja */
 .text-input, .form-field input, .form-field textarea, .form-field select {
-  background: rgba(18, 23, 36, 0.8);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
   color: var(--ink);
 }
 .text-input:focus, .form-field input:focus, .form-field textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.14);
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.3);
   outline: none;
 }
+.text-input::placeholder, .form-field input::placeholder, .form-field textarea::placeholder { color: #9aa0a8; }
 
-/* Noga */
-.site-footer {
-  background: #070a12;
-  border-top: 1px solid rgba(255, 255, 255, 0.10);
-}
-.footer-brand strong { font-family: var(--font-display); }
-.footer-nav a:hover { color: var(--accent); }
-.footer-support:hover { color: var(--accent-2); }
+/* Noga: svetla */
+.site-footer { background: #fff; border-top: 1px solid var(--line); }
+.footer-brand strong { color: #000; }
+.footer-brand p { color: var(--muted); }
+.footer-nav a { color: #33363c; }
+.footer-nav a:hover { color: #000; }
+.footer-support { color: var(--muted); }
+.footer-support:hover { color: #000; }
 
 /* Kartice v orodjih */
 .stat-card, .glass-card, .about-card {
-  background: var(--bg-elev);
+  background: #fafafa;
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
-.stat-ic { color: var(--accent); }
+.stat-ic { color: #111; }
+.stat-value, .stat-label { color: inherit; }
 
 /* Komentarji */
 .comment {
-  background: rgba(18, 23, 36, 0.6);
+  background: #fafafa;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
 }
-.comment:hover { border-color: rgba(79, 143, 247, 0.28); }
+.comment:hover { border-color: var(--line-strong); }
 .role-badge {
-  border-radius: 6px;
-  font-family: var(--font-body);
-  font-weight: 600;
+  border-radius: 999px;
+  font-weight: 700;
   font-size: 0.64rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
-.role-admin { background: rgba(217, 168, 78, 0.14); color: #e5c584; border: 1px solid rgba(217, 168, 78, 0.35); }
-.role-moderator { background: rgba(79, 143, 247, 0.14); color: #8db8fa; border: 1px solid rgba(79, 143, 247, 0.35); }
-.role-banned { background: rgba(240, 112, 90, 0.12); color: #f0a090; border: 1px solid rgba(240, 112, 90, 0.4); }
+.role-admin { background: rgba(245, 197, 24, 0.2); color: #7a6200; border: 1px solid rgba(245, 197, 24, 0.5); }
+.role-moderator { background: rgba(17, 18, 20, 0.06); color: #333; border: 1px solid rgba(17, 18, 20, 0.15); }
+.role-banned { background: rgba(214, 69, 69, 0.1); color: #a03030; border: 1px solid rgba(214, 69, 69, 0.4); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #070a12; }
-::-webkit-scrollbar-thumb { background: #232b3d; border-radius: 999px; border: 2px solid #070a12; }
-::-webkit-scrollbar-thumb:hover { background: #33405c; }
+::-webkit-scrollbar-track { background: #f5f6f7; }
+::-webkit-scrollbar-thumb { background: #d5d8dd; border-radius: 999px; border: 2px solid #f5f6f7; }
+::-webkit-scrollbar-thumb:hover { background: #b8bdc5; }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+
+/* v3 popravki */
+.cat-head { width: 100%; }
+.cat-head h2 { width: auto; }
+.section-head h2, .news-section h2 { width: auto; }
